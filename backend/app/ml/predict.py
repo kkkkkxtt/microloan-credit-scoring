@@ -4,8 +4,8 @@ import shap
 import numpy as np
 
 # Load the saved model and feature list
-model = joblib.load('saved_models/microloan_model.pkl')
-features = joblib.load('saved_models/selected_features.pkl')
+model = joblib.load('../saved_models/microloan_model.pkl')
+features = joblib.load('../saved_models/selected_features.pkl')
 explainer = shap.TreeExplainer(model)
 
 def make_prediction(data_dict: dict):
