@@ -1,0 +1,47 @@
+{
+  "CREDIT_TERM": {
+    "display_name": "Requested Loan Term",
+    "reason": "The requested loan repayment period is severely misaligned with our safety parameters.",
+    "action": "Adjust the requested loan amount or monthly annuity to fit a standard 12-36 month term."
+  },
+  "ANNUITY_INCOME_PERCENT": {
+    "display_name": "Debt-to-Income Ratio (Monthly)",
+    "reason": "The monthly payment takes up too high of a percentage of your currently reported salary.",
+    "action": "Apply for a smaller loan, or provide documentation of additional household income."
+  },
+  "CREDIT_INCOME_PERCENT": {
+    "display_name": "Credit-to-Income Ratio (Total)",
+    "reason": "The total requested loan principal is disproportionately large compared to your documented annual income.",
+    "action": "Consider applying for a smaller principal amount or adding a co-applicant to increase total recognized income."
+  },
+  "EMPLOYED_AGE_PERCENT": {
+    "display_name": "Employment Stability",
+    "reason": "The employment history on record is too brief relative to total age demographics.",
+    "action": "Maintain current employment for another 6-12 months before reapplying to build a stronger profile."
+  },
+  "GOODS_CREDIT_PERCENT": {
+    "display_name": "Goods-to-Credit Ratio",
+    "reason": "The requested loan amount deviates significantly from the actual price of the goods being financed.",
+    "action": "Ensure the requested loan amount closely matches the purchase price, or increase your upfront down payment."
+  },
+  "AGE_YEARS": {
+    "display_name": "Age Demographics",
+    "reason": "Statistical risk associated with this age bracket.",
+    "action": "Secure a guarantor or co-signer for the loan application."
+  },
+  "AMT_CREDIT": {
+    "display_name": "Total Loan Amount",
+    "reason": "The requested principal amount exceeds the approved threshold for your current risk bracket.",
+    "action": "Lower the requested principal amount and re-apply."
+  },
+  "AMT_INCOME_TOTAL": {
+    "display_name": "Total Annual Income",
+    "reason": "The documented annual income does not meet the minimum threshold required for this loan tier.",
+    "action": "Provide additional proof of alternative income streams or apply for a micro-tier loan."
+  },
+  "DAYS_LAST_PHONE_CHANGE": {
+    "display_name": "Contact Information Stability",
+    "reason": "Recent changes to primary contact information prior to an application trigger statistical risk indicators.",
+    "action": "Provide secondary identity verification documents or establish contact stability over the next 90 days."
+  }
+}
