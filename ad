@@ -1,0 +1,60 @@
+[33mcommit 4929b6cf12d74c6d765f27e4100681a5150eafaf[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32menhancement/ui-ux-improvement[m[33m)[m
+Author: kkkkkxtt <kaixiang0110@gmail.com>
+Date:   Fri Apr 24 13:35:50 2026 +0800
+
+    Frontend UI &Backend API enhancement
+
+backend/app/main.py
+backend/app/ml/predict.py
+backend/app/schemas/predict.py
+
+[33mcommit 5bc06250848e9b17f8f0d7c4dd997ba0b1333150[m[33m ([m[1;31morigin/enhancement/ui-ux-improvement[m[33m, [m[1;31morigin/enhancement/model-refinement[m[33m, [m[1;32menhancement/model-refinement[m[33m)[m
+Author: kkkkkxtt <kaixiang0110@gmail.com>
+Date:   Mon Apr 20 16:05:42 2026 +0800
+
+    XAI module with SHAP and dynamic feature dictionary
+
+backend/config/xai_feature_dictionary.json
+backend/notebooks/02_EDA_Optimization.ipynb
+backend/notebooks/04_Preprocessing.ipynb
+backend/notebooks/06_Model_Training.ipynb
+backend/notebooks/07_Final_Model_Deployment.ipynb
+backend/notebooks/08_Explainable_AI.ipynb
+
+[33mcommit f633231ab86fed8d9e8fe8abfb5f0ae0e8b289d9[m
+Author: kkkkkxtt <kaixiang0110@gmail.com>
+Date:   Sun Apr 19 23:41:45 2026 +0800
+
+    data preprocessing and lightgbm model training pipeline
+
+backend/notebooks/02_EDA_Optimization.ipynb
+backend/notebooks/03_Feature_Selection2.ipynb
+backend/notebooks/04_Preprocessing.ipynb
+backend/notebooks/05_Encoding_and_Engineering.ipynb
+backend/notebooks/06.5_Comparative_Threshold_Tuning.ipynb
+backend/notebooks/06_Model_Training.ipynb
+backend/notebooks/07_Final_Model_Deployment.ipynb
+backend/notebooks/final_features_config.json
+backend/notebooks/model_training_features.json
+backend/saved_models/deployment_config.json
+
+[33mcommit 91527b1ff23137ea7a9df50e8567f0b7ecad0fd5[m
+Author: kkkkkxtt <kaixiang0110@gmail.com>
+Date:   Fri Apr 10 22:15:01 2026 +0800
+
+    Docs: Update backend notebooks and sync root state
+
+backend/notebooks/01_Feature_Selection.ipynb
+frontend
+
+[33mcommit f861c7aaec25308d495c2090daf618e24b93dcc7[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m, [m[1;32menhancement/database-integration[m[33m)[m
+Author: kkkkkxtt <kaixiang0110@gmail.com>
+Date:   Tue Apr 7 00:02:11 2026 +0800
+
+    Integrate Local Database
+
+backend/app/db/__init__.py
+backend/app/db/database.py
+backend/app/db/models.py
+backend/app/main.py
+backend/app/ml/predict.py
