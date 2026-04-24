@@ -131,6 +131,7 @@ async def get_applicant_history(ic: str, db: Session = Depends(get_db)):
                 "CODE_GENDER": features.get("CODE_GENDER", 1),
                 "DAYS_EMPLOYED": features.get("DAYS_EMPLOYED", 0),
                 "AMT_INCOME_TOTAL": features.get("AMT_INCOME_TOTAL", 0),
+                "raw_features_log": features,
                 "shap_log": shap_log,
                 "recommendations": rebuilt_recommendations,
                 "dynamic_explanation": f"Historical decision based primarily on {top_risk}."

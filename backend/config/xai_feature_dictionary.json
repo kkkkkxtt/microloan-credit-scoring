@@ -70,7 +70,7 @@
     "action": "Provide alternative proof of stable, long-term residence if you rent."
   },
   "CNT_CHILDREN": {
-    "display_name": "Dependent Liabilities",
+    "display_name": "Total Children",
     "reason": "The number of children directly impacts the monthly discretionary income available for loan repayment.",
     "action": "Ensure declared income comfortably covers estimated living expenses for all dependents."
   },
@@ -150,12 +150,12 @@
     "action": "Provide an active email address for official bank correspondence."
   },
   "OCCUPATION_TYPE": {
-    "display_name": "Occupation Risk Profile",
+    "display_name": "Job Title / Occupation",
     "reason": "Certain job roles have higher historical turnover or seasonal income volatility.",
     "action": "Provide permanent employment contracts rather than probationary agreements."
   },
   "ORGANIZATION_TYPE": {
-    "display_name": "Industry Risk Profile",
+    "display_name": "Industry / Organization Type",
     "reason": "Your current employment sector historically shows higher economic sensitivity or turnover rates.",
     "action": "Provide proof of long-term employment within this specific industry."
   },
