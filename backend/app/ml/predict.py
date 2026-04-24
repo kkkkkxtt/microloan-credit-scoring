@@ -107,35 +107,52 @@ def process_prediction(raw_input: dict) -> dict:
     recommendations = []
     explanations_log = []
     
+    # Sort keys by length descending to ensure we match 'NAME_INCOME_TYPE' before 'NAME_INCOME'
+    dict_keys_sorted = sorted(xai_dictionary.keys(), key=len, reverse=True)
+    
     for _, row in top_risk_factors.iterrows():
         raw_feature = row['Feature']
         effect = row['SHAP_Impact']
         
-        # Strip the One-Hot suffix for dictionary matching (e.g., NAME_INCOME_TYPE_Working -> NAME_INCOME_TYPE)
-        dict_key = raw_feature.split('_')[0] + '_' + raw_feature.split('_')[1] if raw_feature.count('_') > 1 and raw_feature not in xai_dictionary else raw_feature
+        # BULLETPROOF MAPPING
+        dict_key = raw_feature
+        if dict_key not in xai_dictionary:
+            for key in dict_keys_sorted:
+                if raw_feature.startswith(key):
+                    dict_key = key
+                    break
         
-        translation = xai_dictionary.get(dict_key, xai_dictionary.get(raw_feature, {
+        translation = xai_dictionary.get(dict_key, {
             "display_name": raw_feature.replace('_', ' ').title(),
-            "reason": "This metric flagged our automated risk parameters.",
+            "reason": "This specific metric deviated from standard safety thresholds.",
             "action": "Discuss this metric with a verified loan officer."
-        }))
+        })
         
         recommendations.append({
             "feature_name": translation["display_name"],
             "reason": translation["reason"],
             "action": translation["action"],
-            "effect": float(effect) # Pass effect to frontend for the chart
+            "effect": float(effect)
         })
         
-        explanations_log.append({"feature": translation["display_name"], "effect": float(effect)})
+        # CRITICAL FIX: Save the RAW feature (e.g. 'CODE_GENDER_F') to the DB, not the display name
+        explanations_log.append({"feature": raw_feature, "effect": float(effect)})
         
+    # Dynamic Simple Explanation
+    if decision == "Approve":
+        dynamic_explanation = "Your risk profile is acceptable. Your data strongly aligns with historical successful repayments."
+    else:
+        top_risk_name = recommendations[0]["feature_name"] if recommendations else "financial metrics"
+        dynamic_explanation = f"The application was flagged primarily due to your {top_risk_name}. Review the actionable insights below to improve your standing."
+
     return {
-        "applicant_ic": applicant_ic,
-        "status": "success",
-        "risk_probability": float(probability),
-        "decision": decision,
-        "threshold_used": optimal_threshold,
-        "recommendations": recommendations,
-        "raw_features_log": raw_input, # Passed back so main.py can save it to DB
-        "shap_log": explanations_log
-    }
+    "applicant_ic": applicant_ic,
+    "status": "success",
+    "risk_probability": float(probability),
+    "decision": decision,
+    "threshold_used": optimal_threshold,
+    "recommendations": recommendations,
+    "dynamic_explanation": dynamic_explanation, 
+    "raw_features_log": raw_input,
+    "shap_log": explanations_log
+}

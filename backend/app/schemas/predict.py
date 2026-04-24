@@ -1,3 +1,4 @@
+# backend/app/schemas/predict.py
 from pydantic import BaseModel, RootModel
 from typing import Dict, Any, List
 
@@ -21,6 +22,6 @@ class PredictionResponse(BaseModel):
     decision: str
     threshold_used: float
     recommendations: List[RecommendationItem]
-    # We explicitly tell FastAPI to allow these fields through
+    dynamic_explanation: str 
     shap_log: List[ShapItem]
     raw_features_log: Dict[str, Any]

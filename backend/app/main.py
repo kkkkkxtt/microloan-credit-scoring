@@ -1,11 +1,19 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime
-import psycopg2
-import json
+from sqlalchemy.orm import Session
+from sqlalchemy import func, cast, Integer
 
 from app.schemas.predict import PredictionRequest, PredictionResponse
 from app.ml.predict import load_ml_assets, process_prediction
+
+from app.db.database import SessionLocal, engine 
+from app.db.models import ApplicationRecord, Base
+
+import json
+import os
+
+# This ensures your tables are created in PostgreSQL automatically
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Microloan Credit Scoring API")
 
@@ -17,51 +25,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------------- DATABASE CONFIGURATION ----------------
-DB_CONFIG = {
-    "dbname": "microloan_db",
-    "user": "postgres",
-    "password": "123456", 
-    "host": "localhost",
-    "port": "5432"
-}
-
-def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
-# --------------------------------------------------------
+# ---------------- DATABASE DEPENDENCY ----------------
+# This cleanly opens and closes a database session for each request
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+# -----------------------------------------------------
 
 @app.on_event("startup")
 async def startup_event():
     load_ml_assets()
 
-@app.post("/predict", response_model=PredictionResponse)
-async def predict_loan(request: PredictionRequest):
+@app.get("/latest-id")
+async def get_latest_id(db: Session = Depends(get_db)):
     try:
-        # 1. Process via ML script (UPDATED to request.root for Pydantic V2)
+        # Query max ID using SQLAlchemy
+        max_ic = db.query(func.max(cast(ApplicationRecord.applicant_ic, Integer)))\
+                   .filter(ApplicationRecord.applicant_ic.op('~')('^[0-9]+$'))\
+                   .scalar()
+        
+        latest_id = max_ic if max_ic else 100000
+        return {"latest_id": latest_id + 1}
+    except Exception as e:
+        return {"latest_id": 100001}
+
+@app.post("/predict", response_model=PredictionResponse)
+async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db)):
+    try:
         result = process_prediction(request.root)
         
-        # 2. Save to Database for Audit Logging
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Save to Database using SQLAlchemy ORM (No more raw SQL strings!)
+        # Notice we don't need json.dumps() anymore. SQLAlchemy handles JSONB automatically.
+        new_record = ApplicationRecord(
+            applicant_ic=result["applicant_ic"],
+            probability=result["risk_probability"],
+            decision=result["decision"],
+            input_features=result["raw_features_log"],
+            shap_explanations=result["shap_log"]
+        )
         
-        insert_query = """
-            INSERT INTO applications_audit_log 
-            (applicant_ic, application_date, probability, decision, input_features, shap_explanations)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """
-        
-        cursor.execute(insert_query, (
-            result["applicant_ic"],
-            datetime.now(),
-            result["risk_probability"],
-            result["decision"],
-            json.dumps(result["raw_features_log"]),
-            json.dumps(result["shap_log"])
-        ))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
+        db.add(new_record)
+        db.commit()
+        db.refresh(new_record)
         
         return result
         
@@ -69,54 +77,65 @@ async def predict_loan(request: PredictionRequest):
         print(f"Prediction Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/latest-id")
-async def get_latest_id():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        # Find the highest ID number
-        cursor.execute("SELECT MAX(CAST(applicant_ic AS INTEGER)) FROM applications_audit_log WHERE applicant_ic ~ '^[0-9]+$'")
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        latest_id = row[0] if row and row[0] else 100000
-        return {"latest_id": latest_id + 1}
-    except Exception as e:
-        return {"latest_id": 100001} # Fallback if DB is empty
+# Load dictionary globally in main.py
+DICT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config', 'xai_feature_dictionary.json')
+with open(DICT_PATH, 'r') as f:
+    xai_dictionary = json.load(f)
 
 @app.get("/history/{ic}")
-async def get_applicant_history(ic: str):
+async def get_applicant_history(ic: str, db: Session = Depends(get_db)):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        # We now pull shap_explanations so the frontend can render the dashboard again
-        query = """
-            SELECT id, applicant_ic, application_date, probability, decision, input_features, shap_explanations 
-            FROM applications_audit_log WHERE applicant_ic = %s ORDER BY application_date DESC
-        """
-        cursor.execute(query, (ic,))
-        rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        
-        if not rows: return []
+        records = db.query(ApplicationRecord).filter(ApplicationRecord.applicant_ic == ic).order_by(ApplicationRecord.application_date.desc()).all()
+        if not records: return []
             
         history = []
-        for row in rows:
-            features = row[5] if isinstance(row[5], dict) else json.loads(row[5])
-            shap_log = row[6] if isinstance(row[6], list) else json.loads(row[6]) if row[6] else []
+        dict_keys_sorted = sorted(xai_dictionary.keys(), key=len, reverse=True)
+        
+        for row in records:
+            features = row.input_features or {}
+            shap_log = row.shap_explanations or []
+            
+            rebuilt_recommendations = []
+            for item in shap_log[:4]: 
+                raw_feature = item.get("feature", "")
+                
+                # BULLETPROOF MAPPING FOR HISTORY
+                dict_key = raw_feature
+                if dict_key not in xai_dictionary:
+                    for key in dict_keys_sorted:
+                        if raw_feature.startswith(key):
+                            dict_key = key
+                            break
+                            
+                translation = xai_dictionary.get(dict_key, {
+                    "display_name": raw_feature.replace('_', ' ').title(),
+                    "reason": "This specific metric deviated from standard safety thresholds.",
+                    "action": "Discuss this metric with a verified loan officer."
+                })
+                
+                rebuilt_recommendations.append({
+                    "feature_name": translation["display_name"],
+                    "reason": translation["reason"],
+                    "action": translation["action"],
+                    "effect": item.get("effect", 0)
+                })
+            
+            top_risk = rebuilt_recommendations[0]['feature_name'] if rebuilt_recommendations else 'AI Risk Assessment'
+            
             history.append({
-                "id": row[0],
-                "applicant_ic": row[1],
-                "application_date": row[2].isoformat(),
-                "risk_probability": float(row[3]),
-                "decision": row[4],
+                "id": row.id,
+                "applicant_ic": row.applicant_ic,
+                "application_date": row.application_date.isoformat(),
+                "risk_probability": float(row.probability),
+                "decision": row.decision,
                 "CODE_GENDER": features.get("CODE_GENDER", 1),
                 "DAYS_EMPLOYED": features.get("DAYS_EMPLOYED", 0),
                 "AMT_INCOME_TOTAL": features.get("AMT_INCOME_TOTAL", 0),
                 "shap_log": shap_log,
-                "recommendations": [] # Historical fallback since old DB didn't save recommendations
+                "recommendations": rebuilt_recommendations,
+                "dynamic_explanation": f"Historical decision based primarily on {top_risk}."
             })
         return history
     except Exception as e:
+        print(f"History Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
