@@ -92,9 +92,48 @@ def process_prediction(raw_input: dict) -> dict:
     if 'GOODS_CREDIT_PERCENT' in expected_features: 
         df_input.at[0, 'GOODS_CREDIT_PERCENT'] = amt_goods / amt_credit
 
+
+    # -------------------------------------------------------------
+    # NEW STEP 4.5: HARD BUSINESS GUARDRAILS (Anti-Garbage Inputs)
+    # -------------------------------------------------------------
+    # No matter what the ML says, we auto-reject mathematically impossible/illegal loans
+    age_years = abs(raw_input.get('DAYS_BIRTH', 0)) / 365.25
+    credit_requested = float(raw_input.get('AMT_CREDIT', 0))
+    annual_income = float(raw_input.get('AMT_INCOME_TOTAL', 0))
+
+    business_rejection_reason = None
+
+    if age_years < 18:
+        business_rejection_reason = "Applicant is a minor (Under 18)."
+    elif annual_income < 1000:
+        business_rejection_reason = "Verifiable income is below minimum threshold."
+    elif credit_requested > (annual_income * 20):
+        business_rejection_reason = "Requested credit wildly exceeds acceptable debt-to-income limits."
+
+    if business_rejection_reason:
+        return {
+            "applicant_ic": applicant_ic,
+            "status": "success",
+            "risk_probability": 0.99, # Force extreme high risk
+            "decision": "Reject",
+            "threshold_used": optimal_threshold,
+            "recommendations": [{
+                "feature_name": "Automated Business Rule",
+                "reason": business_rejection_reason,
+                "action": "Application violates core lending parameters. Do not proceed.",
+                "effect": 1.0
+            }],
+            "dynamic_explanation": f"Auto-Rejected: {business_rejection_reason}",
+            "raw_features_log": raw_input,
+            "shap_log": [{"feature": "BUSINESS_RULE_VIOLATION", "effect": 1.0}]
+        }
+    
+
     # 5. Make Prediction
     probability = model.predict_proba(df_input)[0, 1]
-    is_rejected = bool(probability >= optimal_threshold)
+    STRICT_THRESHOLD = 0.58 # This is the optimal threshold determined from notebook analysis.
+    
+    is_rejected = bool(probability >= STRICT_THRESHOLD)
     decision = "Reject" if is_rejected else "Approve"
     
     # 6. Generate XAI (SHAP)
