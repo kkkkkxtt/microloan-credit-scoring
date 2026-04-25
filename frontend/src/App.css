@@ -1,0 +1,260 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+body {
+  background-color: #f8fafc; /* Very light gray/blue */
+  font-family: 'Inter', sans-serif;
+  color: #0f172a; /* Slate 900 */
+}
+
+/* Typography & Colors */
+.text-slate {
+  color: #0f172a;
+}
+.text-muted-custom {
+  color: #64748b;
+}
+.bg-emerald-light {
+  background-color: #ecfdf5;
+}
+.text-emerald {
+  color: #10b981;
+}
+
+/* Custom Cards */
+.custom-card {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+}
+
+.record-card {
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+.record-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Custom Inputs */
+.custom-input {
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  border: 1px solid #e2e8f0 !important;
+  font-size: 1rem;
+  box-shadow: none !important;
+}
+.custom-input:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Custom Buttons */
+.btn-dark-custom {
+  background-color: #0f172a !important;
+  border-color: #0f172a !important;
+  color: white !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+}
+.btn-dark-custom:hover {
+  background-color: #1e293b !important;
+}
+
+/* Toggle Pill Buttons (Apply / Record) */
+.toggle-bg {
+  background-color: #f1f5f9;
+  border-radius: 12px;
+  padding: 4px;
+  display: inline-flex;
+}
+/* .toggle-btn {
+  border-radius: 8px;
+  padding: 8px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+} */
+.toggle-btn.active {
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  color: #0f172a;
+}
+.toggle-btn.inactive {
+  color: #64748b;
+}
+
+.toggle-btn {
+  border-radius: 8px;
+  padding: 8px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.toggle-btn:hover {
+  transform: translateY(-2px);
+}
+.toggle-btn:active {
+  transform: scale(0.95);
+}
+
+/* Form Step Indicators */
+.step-dash {
+  height: 4px;
+  width: 24px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-left: 6px;
+}
+.step-dash.active {
+  background-color: #10b981;
+}
+.step-dash.inactive {
+  background-color: #e2e8f0;
+}
+
+.step-circle {
+  width: 32px;
+  height: 32px;
+  background-color: #d1fae5;
+  color: #047857;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin-right: 12px;
+}
+
+/* Gender Toggle Buttons */
+.gender-btn {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 32px;
+  background: white;
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.2s;
+}
+.gender-btn.active {
+  border-color: #10b981;
+  color: #10b981;
+  background-color: #ecfdf5;
+}
+
+/* Fix for Date Picker and Error Icon Collision */
+.custom-input.is-invalid {
+  background-position: right calc(3em + 0.1875rem) center !important;
+  border-color: #ef4444 !important;
+  margin-bottom: 5px;
+}
+
+/* Ensure the error text has its own space and doesn't float into the input */
+.text-danger.small {
+  display: block;
+  clear: both;
+  font-weight: 500;
+  line-height: 1.4;
+  /* Adds extra padding to ensure it clears the input shadow */
+  padding-top: 4px;
+}
+
+/* Specific fix for the date input's browser-specific calendar icon */
+input[type='date'].is-invalid::-webkit-calendar-picker-indicator {
+  margin-right: 10px;
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.4s ease-in-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom Scrollbar for XAI */
+.xai-scroll {
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 15px;
+}
+.xai-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.xai-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.xai-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+/* --- New Waterfall Form Animations --- */
+.slide-down {
+  animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top;
+  opacity: 0;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scaleY(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+.form-section {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+/* Align all form inputs horizontally regardless of label length */
+.form-section .form-label {
+  min-height: 42px; /* Reserves enough space for exactly 2 lines of text */
+  display: flex;
+  align-items: flex-end; /* Pushes single-line text to the bottom, hugging the input */
+  margin-bottom: 8px;
+}
+
+.form-section::after {
+  content: '';
+  position: absolute;
+  bottom: -1rem;
+  left: 5%;
+  width: 90%;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.form-section:last-of-type::after {
+  display: none;
+}
+
+/* Make the Next/Submit button area sticky so it's always easy to reach */
+.sticky-action-bar {
+  position: sticky;
+  bottom: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  padding: 1rem 2rem;
+  border-radius: 16px;
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f1f5f9;
+  z-index: 100;
+  transition: all 0.3s ease;
+}
