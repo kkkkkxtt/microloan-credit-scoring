@@ -70,6 +70,16 @@ const getCategory = (rawFeature) => {
 };
 
 const XaiChart = ({ data }) => {
+  // --- ADD THIS SAFETY CHECK ---
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return (
+      <div className="text-center p-4 text-muted-custom">
+        No AI explanation data available for this record.
+      </div>
+    );
+  }
+  // -----------------------------
+
   // Data for Chart 1: Feature Impact Breakdown (Left)
   const sortedData = [...data].sort(
     (a, b) => Math.abs(b.effect) - Math.abs(a.effect),

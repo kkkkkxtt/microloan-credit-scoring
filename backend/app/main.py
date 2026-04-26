@@ -70,8 +70,18 @@ async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db)
         db.add(new_record)
         db.commit()
         db.refresh(new_record)
-        
-        return result
+
+        # Attach DB-generated metadata to response (so frontend can store per-device history)
+        result_to_return = dict(result) if isinstance(result, dict) else {}
+        result_to_return.update({
+            'id': new_record.id,
+            'application_date': new_record.application_date.isoformat(),
+            'applicant_ic': new_record.applicant_ic,
+            'risk_probability': float(result.get('risk_probability', new_record.probability)),
+            'decision': new_record.decision,
+        })
+
+        return result_to_return
         
     except Exception as e:
         print(f"Prediction Error: {e}")
@@ -140,3 +150,35 @@ async def get_applicant_history(ic: str, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"History Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/history/latest")
+def get_latest_history(db: Session = Depends(get_db)):
+    """Fetches the 5 most recent global applications across all devices."""
+    records = db.query(ApplicationRecord).order_by(ApplicationRecord.application_date.desc()).limit(5).all()
+    
+    history = []
+    for row in records:
+        features = row.input_features or {}
+        shap_log = row.shap_explanations or []
+        
+        # Simple recommendation rebuild for history view
+        rebuilt_recommendations = []
+        top_risk = "Unknown Risk"
+        if shap_log:
+            risk_factors = sorted([s for s in shap_log if s['effect'] > 0], key=lambda x: x['effect'], reverse=True)
+            if risk_factors:
+                top_risk = risk_factors[0]['feature'].replace('_', ' ').title()
+                
+        history.append({
+            "id": row.id,
+            "applicant_ic": row.applicant_ic,
+            "application_date": row.application_date.isoformat(),
+            "risk_probability": float(row.probability),
+            "decision": row.decision,
+            "raw_features_log": features,
+            "shap_log": shap_log,
+            "recommendations": rebuilt_recommendations,
+            "dynamic_explanation": f"Historical decision based primarily on {top_risk}."
+        })
+        
+    return history

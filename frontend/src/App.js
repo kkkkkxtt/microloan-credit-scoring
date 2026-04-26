@@ -29,14 +29,40 @@ function App() {
   useEffect(() => {
     const fetchInitialHistory = async () => {
       if (homeTab === 'record') {
+        // 1. Force the search bar to stay completely empty!
+        setSearchQuery('');
+
+        // 2. Optimistically load the 5 recent records from local storage
+        const recentJson = localStorage.getItem('recent_records');
+        if (recentJson) {
+          try {
+            const recent = JSON.parse(recentJson || '[]');
+            setHistory(recent.slice(0, 5));
+          } catch (err) {
+            console.error('Failed to parse recent_records from localStorage');
+          }
+        }
+
+        // 3. Background Check: Was the database completely reset?
         const savedIC = localStorage.getItem('last_ic');
         if (savedIC) {
-          setSearchQuery(savedIC);
           try {
+            // Just ask the DB if our most recent application still exists
             const response = await axios.get(
               `http://127.0.0.1:8000/history/${savedIC}`,
             );
-            setHistory(response.data.slice(0, 5));
+
+            // If the database returns an empty array, it means you dropped the tables!
+            if (!response.data || response.data.length === 0) {
+              console.warn(
+                'Database reset detected. Clearing outdated local cache.',
+              );
+              localStorage.removeItem('recent_records');
+              localStorage.removeItem('last_ic');
+              setHistory([]);
+            }
+            // CRITICAL FIX: If the DB *does* have it, we do NOTHING.
+            // We leave the 5 local records on the screen instead of overwriting them!
           } catch (err) {
             console.error('History fetch error');
           }
@@ -64,7 +90,39 @@ function App() {
     try {
       const response = await predictLoan(data);
       setResult(response);
+
+      // 1. Save the last searched IC
       localStorage.setItem('last_ic', data.applicant_ic);
+
+      // 2. Maintain the per-device recent records list (most recent first, up to 5)
+      try {
+        const existing = JSON.parse(
+          localStorage.getItem('recent_records') || '[]',
+        );
+
+        const newRecord = {
+          ...(response || {}),
+          applicant_ic: data.applicant_ic,
+          application_date:
+            response.application_date || new Date().toISOString(),
+          raw_features_log: data, // Ensure the raw data is saved locally for the Form Record tab
+        };
+
+        // Remove duplicates and keep the newest at the top
+        const deduped = [
+          newRecord,
+          ...existing.filter(
+            (r) => String(r.applicant_ic) !== String(newRecord.applicant_ic),
+          ),
+        ];
+
+        localStorage.setItem(
+          'recent_records',
+          JSON.stringify(deduped.slice(0, 5)),
+        );
+      } catch (err) {
+        console.error('Failed to update recent_records', err);
+      }
     } catch (err) {
       alert('Analysis failed. Check backend connection.');
       setCurrentView('form');
@@ -177,58 +235,88 @@ function App() {
                 </button>
               </div>
               <h5 className="fw-bold text-slate mb-3">Past Records</h5>
-              {history.map((record) => (
-                <div key={record.id} className="record-card bg-white p-4 mb-3">
-                  <div className="d-flex justify-content-between mb-3">
-                    <div className="d-flex gap-3 align-items-center">
-                      <span className="badge bg-light text-dark border p-2">
-                        ID: {record.applicant_ic}
-                      </span>
-                      <span
-                        className={`badge ${record.decision === 'Approve' ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${record.decision === 'Approve' ? 'text-success' : 'text-danger'} p-2 px-3`}
-                      >
-                        {record.decision}
+              {history.map((record, index) => {
+                const ic =
+                  record.applicant_ic ||
+                  record.raw_features_log?.applicant_ic ||
+                  'Unknown';
+                const gender =
+                  record.CODE_GENDER ?? record.raw_features_log?.CODE_GENDER;
+                const income =
+                  record.AMT_INCOME_TOTAL ??
+                  record.raw_features_log?.AMT_INCOME_TOTAL;
+
+                // --- NEW AGE CALCULATION ---
+                // We use DAYS_BIRTH because that represents the applicant's age
+                const daysBirth =
+                  record.DAYS_BIRTH ?? record.raw_features_log?.DAYS_BIRTH;
+                const ageYears = daysBirth
+                  ? Math.floor(Math.abs(daysBirth) / 365.25)
+                  : 'N/A';
+
+                return (
+                  <div
+                    key={record.id || index}
+                    className="record-card bg-white p-4 mb-3"
+                  >
+                    <div className="d-flex justify-content-between mb-3">
+                      <div className="d-flex gap-3 align-items-center">
+                        <span className="badge bg-light text-dark border p-2">
+                          ID: {ic}
+                        </span>
+                        <span
+                          className={`badge ${record.decision === 'Approve' ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${record.decision === 'Approve' ? 'text-success' : 'text-danger'} p-2 px-3`}
+                        >
+                          {record.decision}
+                        </span>
+                      </div>
+                      <span className="text-muted-custom small">
+                        {record.application_date
+                          ? new Date(record.application_date).toLocaleString()
+                          : 'Just now'}
                       </span>
                     </div>
-                    <span className="text-muted-custom small">
-                      {new Date(record.application_date).toLocaleString()}
-                    </span>
-                  </div>
-                  <Row className="align-items-center">
-                    <Col
-                      xs={3}
-                      className="text-muted-custom small d-flex align-items-center gap-2"
-                    >
-                      <User size={16} />{' '}
-                      {record.CODE_GENDER === 0 ? 'Female' : 'Male'}
-                    </Col>
-                    <Col
-                      xs={3}
-                      className="text-muted-custom small d-flex align-items-center gap-2"
-                    >
-                      <Calendar size={16} /> {Math.abs(record.DAYS_EMPLOYED)}{' '}
-                      Days
-                    </Col>
-                    <Col
-                      xs={3}
-                      className="text-muted-custom small d-flex align-items-center gap-2"
-                    >
-                      <DollarSign size={16} /> ${record.AMT_INCOME_TOTAL}
-                    </Col>
-                    <Col xs={3} className="text-end">
-                      <button
-                        className="btn btn-link p-0 small text-emerald fw-bold d-inline-flex align-items-center record-detail-btn"
-                        onClick={() => {
-                          setResult(record);
-                          setCurrentView('result');
-                        }}
+                    <Row className="align-items-center">
+                      <Col
+                        xs={3}
+                        className="text-muted-custom small d-flex align-items-center gap-2"
                       >
-                        Click for Details <ArrowRight size={14} />
-                      </button>
-                    </Col>
-                  </Row>
-                </div>
-              ))}
+                        <User size={16} />{' '}
+                        {gender === 0 || gender === 'F' ? 'Female' : 'Male'}
+                      </Col>
+
+                      {/* --- UPDATED COLUMN: SHOWS AGE INSTEAD OF DAYS --- */}
+                      <Col
+                        xs={3}
+                        className="text-muted-custom small d-flex align-items-center gap-2"
+                      >
+                        <Calendar size={16} /> {ageYears} Years Old
+                      </Col>
+
+                      <Col
+                        xs={3}
+                        className="text-muted-custom small d-flex align-items-center gap-2"
+                      >
+                        <DollarSign size={16} />{' '}
+                        {income !== undefined && income !== null
+                          ? `$${income.toLocaleString()}`
+                          : 'N/A'}
+                      </Col>
+                      <Col xs={3} className="text-end">
+                        <button
+                          className="btn btn-link p-0 small text-emerald fw-bold d-inline-flex align-items-center record-detail-btn"
+                          onClick={() => {
+                            setResult(record);
+                            setCurrentView('result');
+                          }}
+                        >
+                          Click for Details <ArrowRight size={14} />
+                        </button>
+                      </Col>
+                    </Row>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -337,7 +425,9 @@ function App() {
                           {result.decision}
                         </h2>
                         <p className="text-muted-custom fw-semibold">
-                          Score:{' '}
+                          Probability of Default :{' '}
+                          {(result.risk_probability * 100).toFixed(1)}%{' '}
+                          <br></br> Score:{' '}
                           {((1 - result.risk_probability) * 100).toFixed(1)}/100
                         </p>
                       </Col>
@@ -500,6 +590,48 @@ function App() {
                           : 'None Provided';
                       };
 
+                      // --- Helper to format Geographic Declarations for Applicants ---
+                      const getGeoDeclarations = () => {
+                        const diffs = [];
+                        // Using "different" or descriptive phrases for better UX
+                        if (String(data.REG_CITY_NOT_LIVE_CITY) === '1')
+                          diffs.push('Permanent & Contact City are different');
+                        if (String(data.REG_CITY_NOT_WORK_CITY) === '1')
+                          diffs.push('Permanent & Work City are different');
+                        if (String(data.REG_REGION_NOT_LIVE_REGION) === '1')
+                          diffs.push(
+                            'Permanent & Contact Region are different',
+                          );
+                        if (String(data.REG_REGION_NOT_WORK_REGION) === '1')
+                          diffs.push('Permanent & Work Region are different');
+                        if (String(data.LIVE_CITY_NOT_WORK_CITY) === '1')
+                          diffs.push('Contact & Work City are different');
+                        if (String(data.LIVE_REGION_NOT_WORK_REGION) === '1')
+                          diffs.push('Contact & Work Region are different');
+
+                        if (diffs.length === 0) {
+                          return (
+                            <span className="text-emerald fw-medium">
+                              All addresses match
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <div className="d-flex flex-column gap-1 pt-1">
+                            {diffs.map((diff, i) => (
+                              <span
+                                key={i}
+                                className="badge bg-light text-dark border fw-medium text-start text-wrap lh-base py-1 px-2"
+                                style={{ fontSize: '0.8rem' }}
+                              >
+                                • {diff}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      };
+
                       return (
                         <div className="read-only-form">
                           {/* --- PART 1 --- */}
@@ -604,6 +736,11 @@ function App() {
                             <ReadOnlyField
                               label="Emergency state?"
                               value={data.EMERGENCYSTATE_MODE}
+                            />
+
+                            <ReadOnlyField
+                              label="Address Check Results"
+                              value={getGeoDeclarations()}
                             />
                           </Row>
 

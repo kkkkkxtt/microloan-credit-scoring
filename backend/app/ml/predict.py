@@ -35,7 +35,7 @@ def load_ml_assets():
 def process_prediction(raw_input: dict) -> dict:
     applicant_ic = raw_input.get('applicant_ic', 'UNKNOWN')
     
-    # 1. Create a blank DataFrame with all 161 expected features set to 0.0
+    # 1. Create a blank DataFrame with all expected features set to 0.0
     df_input = pd.DataFrame(0.0, index=[0], columns=expected_features)
     
     # 2. Map Numerical Features
@@ -44,29 +44,24 @@ def process_prediction(raw_input: dict) -> dict:
             df_input.at[0, key] = float(value)
             
     # 3. Dynamic One-Hot Encoding for Categorical Features
-    # If frontend sends NAME_INCOME_TYPE = 'Working', we set 'NAME_INCOME_TYPE_Working' to 1.0
     categorical_columns = ['CODE_GENDER', 'NAME_EDUCATION_TYPE', 'NAME_FAMILY_STATUS', 'NAME_HOUSING_TYPE', 
                            'NAME_INCOME_TYPE', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE', 'NAME_CONTRACT_TYPE',
                            'HOUSETYPE_MODE', 'WALLSMATERIAL_MODE', 'FONDKAPREMONT_MODE', 'EMERGENCYSTATE_MODE']
     
-    # 3. Dynamic One-Hot Encoding for Categorical Features
     for cat_col in categorical_columns:
         if cat_col in raw_input:
             val = raw_input[cat_col]
-            # NEW: If the user selected multiple checkboxes (List)
             if isinstance(val, list):
                 for v in val:
                     encoded_col_name = f"{cat_col}_{v}"
                     if encoded_col_name in expected_features:
                         df_input.at[0, encoded_col_name] = 1.0
-            # Standard single dropdown mapping
             else:
                 encoded_col_name = f"{cat_col}_{val}"
                 if encoded_col_name in expected_features:
                     df_input.at[0, encoded_col_name] = 1.0
                 
-    # 4. DOMAIN-SPECIFIC FEATURE ENGINEERING (As per your notebook)
-    # Calculate Base Age & Employed Years
+    # 4. DOMAIN-SPECIFIC FEATURE ENGINEERING
     days_birth = abs(float(raw_input.get('DAYS_BIRTH', 10000)))
     days_employed = abs(float(raw_input.get('DAYS_EMPLOYED', 1000)))
     age_years = days_birth / 365.25
@@ -75,7 +70,6 @@ def process_prediction(raw_input: dict) -> dict:
     if 'AGE_YEARS' in expected_features: df_input.at[0, 'AGE_YEARS'] = age_years
     if 'YEARS_EMPLOYED' in expected_features: df_input.at[0, 'YEARS_EMPLOYED'] = years_employed
 
-    # Calculate Financial Ratios safely (avoiding division by zero)
     amt_income = float(raw_input.get('AMT_INCOME_TOTAL', 1)) or 1.0
     amt_credit = float(raw_input.get('AMT_CREDIT', 1)) or 1.0
     amt_annuity = float(raw_input.get('AMT_ANNUITY', 1)) or 1.0
@@ -92,17 +86,16 @@ def process_prediction(raw_input: dict) -> dict:
     if 'GOODS_CREDIT_PERCENT' in expected_features: 
         df_input.at[0, 'GOODS_CREDIT_PERCENT'] = amt_goods / amt_credit
 
-
     # -------------------------------------------------------------
-    # NEW STEP 4.5: HARD BUSINESS GUARDRAILS (Anti-Garbage Inputs)
+    # STEP 4.5: HARD BUSINESS GUARDRAILS (Anti-Garbage Inputs)
     # -------------------------------------------------------------
-    # No matter what the ML says, we auto-reject mathematically impossible/illegal loans
     age_years = abs(raw_input.get('DAYS_BIRTH', 0)) / 365.25
     credit_requested = float(raw_input.get('AMT_CREDIT', 0))
     annual_income = float(raw_input.get('AMT_INCOME_TOTAL', 0))
 
     business_rejection_reason = None
 
+    # Rule A: Financial & Age limits
     if age_years < 18:
         business_rejection_reason = "Applicant is a minor (Under 18)."
     elif annual_income < 1000:
@@ -110,11 +103,35 @@ def process_prediction(raw_input: dict) -> dict:
     elif credit_requested > (annual_income * 20):
         business_rejection_reason = "Requested credit wildly exceeds acceptable debt-to-income limits."
 
+    # Rule B: Contact Verification
+    has_contact = any([
+        int(raw_input.get('FLAG_EMAIL', 0)) == 1,
+        int(raw_input.get('FLAG_MOBIL', 0)) == 1,
+        int(raw_input.get('FLAG_PHONE', 0)) == 1,
+        int(raw_input.get('FLAG_CONT_MOBILE', 0)) == 1,
+        int(raw_input.get('FLAG_WORK_PHONE', 0)) == 1,
+        int(raw_input.get('FLAG_EMP_PHONE', 0)) == 1
+    ])
+    if not has_contact:
+        business_rejection_reason = "Critical: No verifiable contact information provided."
+
+    # Rule C: Geographic Fraud
+    geo_risk_score = sum([
+        int(raw_input.get('REG_CITY_NOT_LIVE_CITY', 0)),
+        int(raw_input.get('REG_CITY_NOT_WORK_CITY', 0)),
+        int(raw_input.get('LIVE_CITY_NOT_WORK_CITY', 0)),
+        int(raw_input.get('REG_REGION_NOT_LIVE_REGION', 0)),
+        int(raw_input.get('REG_REGION_NOT_WORK_REGION', 0)),
+        int(raw_input.get('LIVE_REGION_NOT_WORK_REGION', 0))
+    ])
+    if geo_risk_score >= 4: 
+        business_rejection_reason = "Critical: Severe geographic discrepancies detected across registered profiles."
+
     if business_rejection_reason:
         return {
             "applicant_ic": applicant_ic,
             "status": "success",
-            "risk_probability": 0.99, # Force extreme high risk
+            "risk_probability": 0.99,
             "decision": "Reject",
             "threshold_used": optimal_threshold,
             "recommendations": [{
@@ -127,13 +144,16 @@ def process_prediction(raw_input: dict) -> dict:
             "raw_features_log": raw_input,
             "shap_log": [{"feature": "BUSINESS_RULE_VIOLATION", "effect": 1.0}]
         }
-    
 
-    # 5. Make Prediction
+    # -------------------------------------------------------------
+    # 5. Make ML Prediction
+    # -------------------------------------------------------------
     probability = model.predict_proba(df_input)[0, 1]
-    STRICT_THRESHOLD = 0.58 # This is the optimal threshold determined from notebook analysis.
     
-    is_rejected = bool(probability >= STRICT_THRESHOLD)
+    # Use the mathematically optimal threshold from training (fallback to 0.50)
+    actual_threshold = optimal_threshold if optimal_threshold else 0.50
+    
+    is_rejected = bool(probability >= actual_threshold)
     decision = "Reject" if is_rejected else "Approve"
     
     # 6. Generate XAI (SHAP)
@@ -146,14 +166,12 @@ def process_prediction(raw_input: dict) -> dict:
     recommendations = []
     explanations_log = []
     
-    # Sort keys by length descending to ensure we match 'NAME_INCOME_TYPE' before 'NAME_INCOME'
     dict_keys_sorted = sorted(xai_dictionary.keys(), key=len, reverse=True)
     
     for _, row in top_risk_factors.iterrows():
         raw_feature = row['Feature']
         effect = row['SHAP_Impact']
         
-        # BULLETPROOF MAPPING
         dict_key = raw_feature
         if dict_key not in xai_dictionary:
             for key in dict_keys_sorted:
@@ -174,10 +192,8 @@ def process_prediction(raw_input: dict) -> dict:
             "effect": float(effect)
         })
         
-        # CRITICAL FIX: Save the RAW feature (e.g. 'CODE_GENDER_F') to the DB, not the display name
         explanations_log.append({"feature": raw_feature, "effect": float(effect)})
         
-    # Dynamic Simple Explanation
     if decision == "Approve":
         dynamic_explanation = "Your risk profile is acceptable. Your data strongly aligns with historical successful repayments."
     else:
@@ -185,13 +201,13 @@ def process_prediction(raw_input: dict) -> dict:
         dynamic_explanation = f"The application was flagged primarily due to your {top_risk_name}. Review the actionable insights below to improve your standing."
 
     return {
-    "applicant_ic": applicant_ic,
-    "status": "success",
-    "risk_probability": float(probability),
-    "decision": decision,
-    "threshold_used": optimal_threshold,
-    "recommendations": recommendations,
-    "dynamic_explanation": dynamic_explanation, 
-    "raw_features_log": raw_input,
-    "shap_log": explanations_log
-}
+        "applicant_ic": applicant_ic,
+        "status": "success",
+        "risk_probability": float(probability),
+        "decision": decision,
+        "threshold_used": optimal_threshold,
+        "recommendations": recommendations,
+        "dynamic_explanation": dynamic_explanation, 
+        "raw_features_log": raw_input,
+        "shap_log": explanations_log
+    }

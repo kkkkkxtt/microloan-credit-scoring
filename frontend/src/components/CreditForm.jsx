@@ -65,38 +65,243 @@ const CreditForm = ({ onSubmit, onCancel }) => {
     DEF_60_CNT_SOCIAL_CIRCLE: 0,
   });
 
+  // Friendly labels for ambiguous organization / industry codes
+  const ORG_FRIENDLY_MAP = {
+    'Business Entity Type 1': 'Small Business',
+    'Business Entity Type 2': 'Large Corporate',
+    'Business Entity Type 3': 'Public Enterprise',
+    'Industry: type 1': 'Manufacturing',
+    'Industry: type 2': 'Mining',
+    'Industry: type 3': 'Pharmaceutical',
+    'Industry: type 4': 'Electronics',
+    'Industry: type 5': 'Food Processing',
+    'Industry: type 6': 'Textiles',
+    'Industry: type 7': 'Metals',
+    'Industry: type 8': 'Chemicals',
+    'Industry: type 9': 'Plastics',
+    'Industry: type 10': 'Automotive',
+    'Industry: type 11': 'Aerospace',
+    'Industry: type 12': 'Biotech',
+    'Industry: type 13': 'Energy',
+    'Trade: type 1': 'Retail',
+    'Trade: type 2': 'Wholesale',
+    'Trade: type 3': 'E-commerce',
+    'Trade: type 4': 'Import/Export',
+    'Trade: type 5': 'Franchise',
+    'Trade: type 6': 'Outlet',
+    'Trade: type 7': 'Market Stall',
+    'Transport: type 1': 'Road Transport',
+    'Transport: type 2': 'Rail Transport',
+    'Transport: type 3': 'Sea Transport',
+    'Transport: type 4': 'Air Transport',
+  };
+
+  // --- FETCH THE ID ON MOUNT ---
   useEffect(() => {
     const fetchId = async () => {
       try {
-        const res = await getLatestId();
-        setFormData((prev) => ({
-          ...prev,
-          applicant_ic: res.latest_id.toString(),
-        }));
-      } catch (err) {
+        const response = await getLatestId();
+
+        let actualId = '100001'; // Default safe value
+
+        // BULLETPROOF ID EXTRACTION
+        if (typeof response === 'object' && response !== null) {
+          // Handle nested Axios { data: ... } wrappers
+          const innerData =
+            response.data !== undefined ? response.data : response;
+
+          if (typeof innerData === 'object' && innerData !== null) {
+            // If it's a dictionary like {"whatever_key_name": 100029}, just grab the first value!
+            actualId = Object.values(innerData)[0];
+          } else {
+            actualId = innerData;
+          }
+        } else {
+          // If the backend just returns a raw number
+          actualId = response;
+        }
+
+        setFormData((prev) => ({ ...prev, applicant_ic: String(actualId) }));
+      } catch (error) {
+        console.error('Failed to fetch new ID', error);
         setFormData((prev) => ({ ...prev, applicant_ic: '100001' }));
       }
     };
     fetchId();
   }, []);
-
-  const showToast = (msg) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 2000);
-  };
-
+  // --- 1. RESTORED MISSING HELPER FUNCTIONS ---
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear the error as soon as the user starts typing
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: null }));
+      setErrors((prev) => {
+        const newErr = { ...prev };
+        delete newErr[field];
+        return newErr;
+      });
     }
   };
 
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 4000);
+  };
+
+  // --- 2. FIXED VALIDATION FUNCTION (Removed broken duplicates) ---
   const validateStep = (currentStep) => {
-    return { isValid: true, isAutoRejected: false };
+    const newErrors = {};
+    let isAutoRejected = false;
+
+    const parseNumber = (val) => {
+      const n = Number(val);
+      return Number.isFinite(n) ? n : NaN;
+    };
+
+    const now = new Date();
+
+    const parseDateSafe = (d) => {
+      if (!d) return null;
+      const dt = new Date(d);
+      return Number.isNaN(dt.getTime()) ? null : dt;
+    };
+
+    // Step 1: Basic personal checks
+    if (currentStep === 1) {
+      if (!formData.CODE_GENDER)
+        newErrors.CODE_GENDER = 'Please select gender.';
+
+      const bDate = parseDateSafe(formData.birth_date);
+      if (!bDate)
+        newErrors.birth_date =
+          'Please provide a valid Date of Birth (YYYY-MM-DD).';
+      else if (bDate > now)
+        newErrors.birth_date = 'Date of Birth cannot be in the future.';
+      else {
+        const ageYears = (now - bDate) / (1000 * 60 * 60 * 24 * 365.25);
+        if (ageYears < 18) {
+          newErrors.birth_date =
+            'AUTO-REJECT: Applicant is a minor (Under 18).';
+          isAutoRejected = true;
+        }
+      }
+
+      const children = parseNumber(formData.CNT_CHILDREN);
+      if (Number.isNaN(children) || children < 0)
+        newErrors.CNT_CHILDREN = 'Children must be 0 or greater.';
+      const members = parseNumber(formData.CNT_FAM_MEMBERS);
+      if (Number.isNaN(members) || members < 1)
+        newErrors.CNT_FAM_MEMBERS = 'Household members must be 1 or greater.';
+    }
+
+    // Step 4: Employment & Income
+    if (currentStep === 4) {
+      const income = parseNumber(formData.AMT_INCOME_TOTAL);
+      if (Number.isNaN(income) || income < 0)
+        newErrors.AMT_INCOME_TOTAL = 'Please enter valid annual income.';
+
+      if (
+        ['Working', 'Commercial associate', 'State servant'].includes(
+          formData.NAME_INCOME_TYPE,
+        )
+      ) {
+        const empDate = parseDateSafe(formData.employed_date);
+        if (!empDate)
+          newErrors.employed_date =
+            'Please provide a valid employment start date (YYYY-MM-DD).';
+        else if (empDate > now)
+          newErrors.employed_date =
+            'Employment start date cannot be in the future.';
+        else {
+          const bDate = parseDateSafe(formData.birth_date);
+          if (bDate) {
+            const minStart = new Date(bDate);
+            minStart.setFullYear(minStart.getFullYear() + 14);
+            if (empDate < minStart) {
+              newErrors.employed_date =
+                'Employment start date is inconsistent with Date of Birth.';
+            }
+          }
+        }
+      }
+    }
+
+    // Step 5: Loan details
+    if (currentStep === 5) {
+      const credit = parseNumber(formData.AMT_CREDIT);
+      if (Number.isNaN(credit) || credit <= 0)
+        newErrors.AMT_CREDIT = 'Please enter valid requested credit amount.';
+    }
+
+    // Step 6: Final guardrails (also used before submit)
+    if (currentStep === 6) {
+      const income = parseNumber(formData.AMT_INCOME_TOTAL) || 0;
+      const credit = parseNumber(formData.AMT_CREDIT) || 0;
+
+      const bDate = parseDateSafe(formData.birth_date);
+      if (!bDate) {
+        newErrors.birth_date = 'Please provide a valid Date of Birth.';
+      } else {
+        const ageYears = (now - bDate) / (1000 * 60 * 60 * 24 * 365.25);
+        if (ageYears < 18) {
+          newErrors.birth_date =
+            'AUTO-REJECT: Applicant is a minor (Under 18).';
+          isAutoRejected = true;
+        }
+
+        if (formData.employed_date) {
+          const empDate = parseDateSafe(formData.employed_date);
+          if (!empDate) {
+            newErrors.employed_date =
+              'Please provide a valid employment start date.';
+          } else {
+            const minStart = new Date(bDate);
+            minStart.setFullYear(minStart.getFullYear() + 14);
+            if (empDate < minStart) {
+              newErrors.employed_date =
+                'Employment start date is inconsistent with Date of Birth.';
+            }
+            if (empDate > now) {
+              newErrors.employed_date =
+                'Employment start date cannot be in the future.';
+            }
+
+            const yearsEmployed =
+              (now - empDate) / (1000 * 60 * 60 * 24 * 365.25);
+            if (yearsEmployed > ageYears) {
+              newErrors.employed_date =
+                'Employment start date indicates worked longer than applicant age.';
+            }
+          }
+        }
+      }
+
+      if (income < 1000) {
+        newErrors.AMT_INCOME_TOTAL =
+          'AUTO-REJECT: Verifiable income is below minimum threshold.';
+        isAutoRejected = true;
+      }
+      if (credit > income * 20) {
+        newErrors.AMT_CREDIT =
+          'AUTO-REJECT: Requested credit wildly exceeds acceptable debt-to-income limits.';
+        isAutoRejected = true;
+      }
+    }
+
+    setErrors((prev) => ({ ...prev, ...newErrors }));
+    const isValid = Object.keys(newErrors).length === 0 && !isAutoRejected;
+    return { isValid, isAutoRejected };
   };
 
   const handleNext = () => {
+    const { isValid, isAutoRejected } = validateStep(step);
+    if (!isValid) {
+      if (isAutoRejected) {
+        showToast('Application auto-rejected due to invalid core parameters.');
+      } else {
+        showToast('Please fix the highlighted errors before continuing.');
+      }
+      return;
+    }
     if (step < 6) setStep(step + 1);
     else setShowConfirm(true);
   };
@@ -109,6 +314,17 @@ const CreditForm = ({ onSubmit, onCancel }) => {
 
   const executeSubmit = () => {
     setShowConfirm(false);
+
+    // Final validation and mapping before submit
+    const { isValid, isAutoRejected } = validateStep(6);
+    if (!isValid) {
+      if (isAutoRejected) {
+        showToast('Application auto-rejected due to core business rules.');
+      } else {
+        showToast('Please fix the highlighted errors before submitting.');
+      }
+      return;
+    }
 
     const birthDate = new Date(formData.birth_date);
     const DAYS_BIRTH = -Math.ceil(
@@ -158,6 +374,23 @@ const CreditForm = ({ onSubmit, onCancel }) => {
       DEF_30_CNT_SOCIAL_CIRCLE: parseInt(formData.DEF_30_CNT_SOCIAL_CIRCLE),
       DEF_60_CNT_SOCIAL_CIRCLE: parseInt(formData.DEF_60_CNT_SOCIAL_CIRCLE),
     };
+
+    // Parse friendly organization label back to original code if needed
+    if (
+      payload.ORGANIZATION_TYPE &&
+      typeof payload.ORGANIZATION_TYPE === 'string'
+    ) {
+      const orgVal = payload.ORGANIZATION_TYPE;
+      const m = orgVal.match(/\(([^)]+)\)\s*$/);
+      if (m && m[1]) payload.ORGANIZATION_TYPE = m[1];
+      else {
+        // If user typed a friendly label exactly, check reverse map
+        const reverseKey = Object.keys(ORG_FRIENDLY_MAP).find(
+          (k) => ORG_FRIENDLY_MAP[k].toLowerCase() === orgVal.toLowerCase(),
+        );
+        if (reverseKey) payload.ORGANIZATION_TYPE = reverseKey;
+      }
+    }
 
     delete payload.birth_date;
     delete payload.employed_date;
@@ -941,9 +1174,13 @@ const CreditForm = ({ onSubmit, onCancel }) => {
                       'Transport: type 3',
                       'Transport: type 4',
                       'University',
-                    ].map((org) => (
-                      <option key={org} value={org} />
-                    ))}
+                    ].map((org) => {
+                      const friendly = ORG_FRIENDLY_MAP[org];
+                      const optionValue = friendly
+                        ? `${friendly} (${org})`
+                        : org;
+                      return <option key={org} value={optionValue} />;
+                    })}
                   </datalist>
                 </Form.Group>
               </Col>
