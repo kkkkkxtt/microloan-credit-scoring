@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Spinner, Form } from 'react-bootstrap';
+import { Container, Row, Col, Spinner, Form, Alert } from 'react-bootstrap';
 import {
   Search,
   ArrowRight,
@@ -8,6 +8,10 @@ import {
   Calendar,
   DollarSign,
   ArrowLeft,
+  Zap,
+  ShieldCheck,
+  BarChart2,
+  Sparkles,
 } from 'lucide-react';
 import axios from 'axios';
 import GaugeChart from 'react-gauge-chart';
@@ -25,6 +29,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [history, setHistory] = useState([]);
   const [resultView, setResultView] = useState('analysis');
+  const [searchError, setSearchError] = useState('');
 
   useEffect(() => {
     const fetchInitialHistory = async () => {
@@ -73,14 +78,25 @@ function App() {
   }, [homeTab]);
 
   const handleSearch = async (icToSearch = searchQuery) => {
-    if (!icToSearch) return;
+    setSearchError('');
+    if (!icToSearch) {
+      setSearchError('Please enter an ID to search.');
+      return;
+    }
     try {
       const response = await axios.get(
         `http://127.0.0.1:8000/history/${icToSearch}`,
       );
+      if (!response.data || response.data.length === 0) {
+        setHistory([]);
+        setSearchError('Record not exist');
+        return;
+      }
       setHistory(response.data.slice(0, 5));
     } catch (err) {
-      console.error('History fetch error');
+      console.error('History fetch error', err);
+      setHistory([]);
+      setSearchError('Record not exist');
     }
   };
 
@@ -132,21 +148,17 @@ function App() {
   };
 
   return (
-    <Container className="py-5" style={{ maxWidth: '1000px' }}>
+    <Container className="py-4" style={{ maxWidth: '1000px' }}>
       <style>{`.btn-animated{transition:transform .15s ease, box-shadow .15s ease;} .btn-animated:hover{transform:translateY(-3px) scale(1.02); box-shadow:0 8px 28px rgba(15,23,42,0.06);} .record-detail-btn{transition: color .12s ease, transform .12s ease;} .record-detail-btn:hover{transform:translateX(6px);}`}</style>
       {/* GLOBAL HEADER */}
       {currentView === 'home' && (
-        <div className="d-flex justify-content-between align-items-start mb-5">
-          <div>
-            <h1
-              className="fw-black text-slate m-0"
-              style={{ fontSize: '2.5rem', fontWeight: '900' }}
-            >
-              Credify
-            </h1>
-            <p className="text-muted-custom m-0">
-              A Microloan Credit Scoring Classification Platform
-            </p>
+        <div className="app-header mb-4">
+          <div className="brand-logo">
+            <div className="brand-logo-mark">C</div>
+            <div>
+              <p className="brand-name">Credify</p>
+              <p className="brand-tagline">Microloan Credit Scoring Platform</p>
+            </div>
           </div>
           <div className="toggle-bg">
             <div
@@ -169,42 +181,86 @@ function App() {
       {currentView === 'home' && (
         <div className="fade-in">
           {homeTab === 'apply' ? (
-            <div className="py-4">
-              <h2 className="fw-bold text-slate mb-3">What is Microloan?</h2>
-              <p
-                className="text-muted-custom mb-5"
-                style={{ fontSize: '1.1rem', lineHeight: '1.7' }}
-              >
-                A microloan is a small, short-term loan typically provided to
-                individuals or small businesses who lack access to traditional
-                banking services. These loans are designed to help entrepreneurs
-                start or grow businesses, manage emergencies, or bridge
-                financial gaps.
-              </p>
+            <div className="fade-in">
+              {/* Hero Card */}
+              <div className="home-hero mb-4">
+                <div className="hero-eyebrow">
+                  <Sparkles size={12} /> ML-Powered Credit Scoring
+                </div>
+                <h2 className="hero-title">
+                  Fast, fair credit decisions
+                  <br />
+                  you can <em>understand</em>
+                </h2>
+                <p className="hero-description">
+                  Credify uses advanced Machine Learning to assess microloan
+                  applications in minutes — giving you a transparent decision
+                  with a clear explanation of the factors that shaped it.
+                </p>
 
-              <div className="text-center mb-5">
-                <button
-                  className="btn btn-dark-custom d-inline-flex align-items-center gap-2"
-                  onClick={() => setCurrentView('form')}
-                >
-                  Click to Apply <ArrowRight size={20} />
-                </button>
+                <div className="stat-pills">
+                  <div className="stat-pill">
+                    <span className="dot"></span> Instant Analysis
+                  </div>
+                  <div className="stat-pill">
+                    <span className="dot"></span> Explainable AI
+                  </div>
+                  <div className="stat-pill">
+                    <span className="dot"></span> Financial Inclusion
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <button
+                    className="btn btn-cta"
+                    onClick={() => setCurrentView('form')}
+                  >
+                    Start Application <ArrowRight size={18} />
+                  </button>
+                </div>
               </div>
 
-              <div className="bg-emerald-light p-4 rounded-4 border border-success border-opacity-25">
-                <h5 className="fw-bold text-slate d-flex align-items-center gap-2 mb-3">
-                  <Info className="text-emerald" size={24} /> About Credify
-                </h5>
-                <p
-                  className="text-muted-custom m-0"
-                  style={{ lineHeight: '1.6' }}
-                >
-                  Credify uses advanced Machine Learning algorithms to assess
-                  your creditworthiness in minutes. Our platform provides a
-                  transparent, simple, and fast credit assessment test, giving
-                  you not just a decision, but an explanation of why. We aim to
-                  empower financial inclusion by making credit scoring
-                  accessible and understandable for everyone.
+              {/* Feature Grid */}
+              <div className="feature-grid mb-4">
+                <div className="feature-card">
+                  <div className="fc-icon">
+                    <Zap size={18} />
+                  </div>
+                  <div className="fc-title">Instant Results</div>
+                  <div className="fc-desc">
+                    Get a credit decision in seconds, not days.
+                  </div>
+                </div>
+                <div className="feature-card">
+                  <div className="fc-icon">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div className="fc-title">Transparent & Fair</div>
+                  <div className="fc-desc">
+                    Understand exactly why a decision was made.
+                  </div>
+                </div>
+                <div className="feature-card">
+                  <div className="fc-icon">
+                    <BarChart2 size={18} />
+                  </div>
+                  <div className="fc-title">AI-Driven Insights</div>
+                  <div className="fc-desc">
+                    Advanced ML models with explainability built in.
+                  </div>
+                </div>
+              </div>
+
+              {/* About Box */}
+              <div className="about-box">
+                <div className="about-title">
+                  <Info size={16} /> About Credify
+                </div>
+                <p>
+                  Credify helps individuals and small businesses access
+                  microloan credit assessments that were previously available
+                  only to large institutions. We believe everyone deserves to
+                  know their creditworthiness — and the reasons behind it.
                 </p>
               </div>
             </div>
@@ -222,7 +278,10 @@ function App() {
                     placeholder="Enter ID to Search History Record..."
                     className="custom-input ps-5"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (searchError) setSearchError('');
+                    }}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
                 </div>
@@ -234,6 +293,11 @@ function App() {
                   Search Record
                 </button>
               </div>
+              {searchError && (
+                <Alert variant="warning" className="mb-3">
+                  {searchError}
+                </Alert>
+              )}
               <h5 className="fw-bold text-slate mb-3">Past Records</h5>
               {history.map((record, index) => {
                 const ic =

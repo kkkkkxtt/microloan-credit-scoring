@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   AlertTriangle,
   Fingerprint,
+  ShieldCheck,
 } from 'lucide-react';
 import { getLatestId } from '../services/api';
 
@@ -193,11 +194,30 @@ const CreditForm = ({ onSubmit, onCancel }) => {
         newErrors.CNT_FAM_MEMBERS = 'Household members must be 1 or greater.';
     }
 
+    // NEW: Step 3: Housing & Geography
+    if (currentStep === 3) {
+      if (
+        !formData.WALLSMATERIAL_MODE ||
+        formData.WALLSMATERIAL_MODE.length === 0
+      ) {
+        newErrors.WALLSMATERIAL_MODE =
+          'Please select at least one building wall material.';
+      }
+    }
+
     // Step 4: Employment & Income
     if (currentStep === 4) {
-      const income = parseNumber(formData.AMT_INCOME_TOTAL);
-      if (Number.isNaN(income) || income < 0)
-        newErrors.AMT_INCOME_TOTAL = 'Please enter valid annual income.';
+      // Check for blank first
+      if (
+        !formData.AMT_INCOME_TOTAL ||
+        formData.AMT_INCOME_TOTAL.toString().trim() === ''
+      ) {
+        newErrors.AMT_INCOME_TOTAL = 'Please enter your total annual income.';
+      } else {
+        const income = parseNumber(formData.AMT_INCOME_TOTAL);
+        if (Number.isNaN(income) || income < 0)
+          newErrors.AMT_INCOME_TOTAL = 'Please enter a valid annual income.';
+      }
 
       if (
         ['Working', 'Commercial associate', 'State servant'].includes(
@@ -227,9 +247,32 @@ const CreditForm = ({ onSubmit, onCancel }) => {
 
     // Step 5: Loan details
     if (currentStep === 5) {
-      const credit = parseNumber(formData.AMT_CREDIT);
-      if (Number.isNaN(credit) || credit <= 0)
-        newErrors.AMT_CREDIT = 'Please enter valid requested credit amount.';
+      // Check Credit blank
+      if (
+        !formData.AMT_CREDIT ||
+        formData.AMT_CREDIT.toString().trim() === ''
+      ) {
+        newErrors.AMT_CREDIT = 'Please enter the requested borrow amount.';
+      } else {
+        const credit = parseNumber(formData.AMT_CREDIT);
+        if (Number.isNaN(credit) || credit <= 0)
+          newErrors.AMT_CREDIT =
+            'Please enter a valid requested credit amount.';
+      }
+
+      // Check Annuity blank
+      if (
+        !formData.AMT_ANNUITY ||
+        formData.AMT_ANNUITY.toString().trim() === ''
+      ) {
+        newErrors.AMT_ANNUITY =
+          'Please enter your preferred yearly repayment amount.';
+      } else {
+        const annuity = parseNumber(formData.AMT_ANNUITY);
+        if (Number.isNaN(annuity) || annuity <= 0)
+          newErrors.AMT_ANNUITY =
+            'Please enter a valid yearly repayment amount.';
+      }
     }
 
     // Step 6: Final guardrails (also used before submit)
@@ -419,49 +462,107 @@ const CreditForm = ({ onSubmit, onCancel }) => {
             top: '30px',
             left: '50%',
             transform: 'translateX(-50%)',
-            backgroundColor: '#ef4444',
-            color: 'white',
+            backgroundColor: '#fff',
+            color: '#ef4444',
+            border: '1.5px solid rgba(239,68,68,0.3)',
             padding: '14px 28px',
-            borderRadius: '12px',
+            borderRadius: '14px',
             zIndex: 9999,
             fontWeight: '600',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+            boxShadow: '0 12px 32px rgba(239,68,68,0.15)',
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
+            fontSize: '0.95rem',
+            fontFamily: 'DM Sans, sans-serif',
           }}
         >
-          <AlertTriangle size={20} />
+          <AlertTriangle size={18} />
           {toastMsg}
         </div>
       )}
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold text-slate m-0">Credit Application</h2>
+      {/* Form Header */}
+      <div className="app-header mb-4">
+        <div className="brand-logo">
+          <div className="brand-logo-mark">C</div>
+          <div>
+            <p className="brand-name">Credit Application</p>
+            <p className="brand-tagline">
+              Fill in all sections to receive your decision
+            </p>
+          </div>
+        </div>
         <button
-          className="btn btn-link text-danger text-decoration-none fw-semibold"
+          className="btn fw-semibold"
+          style={{
+            color: '#ef4444',
+            background: 'rgba(239,68,68,0.07)',
+            border: '1px solid rgba(239,68,68,0.18)',
+            borderRadius: '10px',
+            padding: '8px 18px',
+            fontSize: '0.88rem',
+          }}
           onClick={() => setShowDiscard(true)}
         >
           Cancel Application
         </button>
       </div>
 
-      <div className="bg-light p-3 rounded-4 mb-4 d-flex align-items-center gap-3 border">
-        <Fingerprint size={24} className="text-muted-custom" />
+      {/* Application ID Banner */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #f0faf6 0%, #e8f5ef 100%)',
+          border: '1px solid var(--color-accent-mid)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1rem 1.5rem',
+        }}
+        className="mb-4 d-flex align-items-center gap-3"
+      >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            background: 'var(--color-accent-light)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-accent)',
+            flexShrink: 0,
+          }}
+        >
+          <Fingerprint size={20} />
+        </div>
         <div>
-          <span className="text-muted-custom small fw-bold d-block">
-            Application ID
+          <span
+            style={{
+              color: 'var(--color-accent)',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              display: 'block',
+            }}
+          >
+            Your Application ID
           </span>
-          <span className="fw-bold text-slate fs-5">
+          <span
+            className="fw-bold text-slate fs-5"
+            style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
+          >
             {formData.applicant_ic}
           </span>
         </div>
-        <div className="ms-auto text-muted-custom small text-end">
-          *Please save this ID to check your record history later.
+        <div
+          className="ms-auto text-muted-custom small text-end"
+          style={{ fontSize: '0.82rem' }}
+        >
+          💡 Save this ID to look up your record later.
         </div>
       </div>
 
-      <div className="custom-card p-4 p-md-5 mb-4 shadow-sm">
+      <div className="custom-card p-4 p-md-5 mb-4">
         {/* ================= PART 1: DEMOGRAPHICS ================= */}
         {step >= 1 && (
           <div
@@ -822,7 +923,17 @@ const CreditForm = ({ onSubmit, onCancel }) => {
                   <Form.Label className="text-muted-custom small fw-semibold">
                     Building wall material? (Select multiple)
                   </Form.Label>
-                  <div className="bg-light p-3 rounded border">
+                  <div
+                    style={{
+                      background: 'var(--color-surface-2)',
+                      // Dynamically turn the border red if there is an error
+                      border: errors.WALLSMATERIAL_MODE
+                        ? '1.5px solid #ef4444'
+                        : '1px solid var(--color-border-light)',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                    className="p-3"
+                  >
                     {[
                       'Block',
                       'Mixed',
@@ -848,6 +959,12 @@ const CreditForm = ({ onSubmit, onCancel }) => {
                       />
                     ))}
                   </div>
+                  {/* Display the error message */}
+                  {errors.WALLSMATERIAL_MODE && (
+                    <div className="text-danger small mt-2 pt-1">
+                      {errors.WALLSMATERIAL_MODE}
+                    </div>
+                  )}
                 </Form.Group>
               </Col>
               <Col md={4}>
@@ -896,7 +1013,14 @@ const CreditForm = ({ onSubmit, onCancel }) => {
                 <Form.Label className="text-muted-custom small fw-semibold">
                   Geographic Declarations (Check all that apply to you)
                 </Form.Label>
-                <div className="bg-light p-3 rounded-3 mb-4 d-flex flex-column gap-2">
+                <div
+                  style={{
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border-light)',
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                  className="p-3 mb-4 d-flex flex-column gap-2"
+                >
                   <Form.Check
                     type="checkbox"
                     label="My permanent address city does NOT match my contact address city."
@@ -1357,46 +1481,103 @@ const CreditForm = ({ onSubmit, onCancel }) => {
         <div style={{ flex: 1 }}>
           {step > 1 && (
             <button
-              className="btn btn-outline-secondary d-flex align-items-center rounded-pill px-3 fw-semibold"
+              className="btn d-flex align-items-center fw-semibold"
               onClick={handleBack}
-              style={{ borderColor: '#cbd5e1', color: '#475569' }}
+              style={{
+                borderColor: 'var(--color-border)',
+                color: 'var(--color-text-muted)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '10px',
+                padding: '8px 18px',
+                background: 'white',
+              }}
             >
               <ChevronLeft size={18} className="me-1" /> Back
             </button>
           )}
         </div>
         <div className="text-center" style={{ flex: 1 }}>
-          <span className="text-muted-custom fw-semibold">
-            Progress: {step}/6
+          <div className="d-flex align-items-center justify-content-center gap-1 mb-1">
+            {[1, 2, 3, 4, 5, 6].map((s) => (
+              <div
+                key={s}
+                style={{
+                  height: 4,
+                  width: s === step ? 24 : 14,
+                  borderRadius: 4,
+                  background:
+                    s <= step ? 'var(--color-accent)' : 'var(--color-border)',
+                  transition: 'all 0.3s ease',
+                }}
+              />
+            ))}
+          </div>
+          <span
+            className="text-muted-custom fw-semibold"
+            style={{ fontSize: '0.8rem' }}
+          >
+            Step {step} of 6
           </span>
         </div>
         <div className="text-end" style={{ flex: 1 }}>
-          <button
-            className="btn btn-dark-custom d-inline-flex align-items-center"
-            onClick={handleNext}
-          >
-            {step === 6 ? 'Submit Application' : 'Continue to Next Section'}{' '}
-            <ChevronRight size={18} className="ms-1" />
+          <button className="btn btn-cta" onClick={handleNext}>
+            {step === 6 ? 'Submit Application' : 'Continue'}{' '}
+            <ChevronRight size={18} />
           </button>
         </div>
       </div>
 
       <Modal show={showDiscard} onHide={() => setShowDiscard(false)} centered>
-        <Modal.Body className="p-4 text-center">
-          <h4 className="fw-bold mb-3">Discard Application?</h4>
-          <p className="text-muted-custom mb-4">
+        <Modal.Body
+          className="p-4 text-center"
+          style={{ borderRadius: 'var(--radius-lg)' }}
+        >
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              background: 'rgba(239,68,68,0.1)',
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem',
+            }}
+          >
+            <AlertTriangle size={22} color="#ef4444" />
+          </div>
+          <h4
+            className="fw-bold mb-2"
+            style={{ fontFamily: 'Fraunces, serif' }}
+          >
+            Discard Application?
+          </h4>
+          <p className="text-muted-custom mb-4" style={{ fontSize: '0.95rem' }}>
             Your progress will be lost. Are you sure you want to exit?
           </p>
           <div className="d-flex gap-2 justify-content-center">
             <button
-              className="btn btn-light custom-input"
+              className="btn fw-semibold"
+              style={{
+                border: '1px solid var(--color-border)',
+                borderRadius: 10,
+                padding: '10px 24px',
+                background: 'white',
+                color: 'var(--color-text)',
+              }}
               onClick={() => setShowDiscard(false)}
             >
-              Cancel
+              Keep Editing
             </button>
             <button
-              className="btn btn-danger custom-input"
-              style={{ background: '#ef4444', color: 'white', border: 'none' }}
+              className="btn fw-semibold"
+              style={{
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: 10,
+                padding: '10px 24px',
+              }}
               onClick={onCancel}
             >
               Yes, Discard
@@ -1406,19 +1587,48 @@ const CreditForm = ({ onSubmit, onCancel }) => {
       </Modal>
 
       <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
-        <Modal.Body className="p-4 text-center">
-          <h4 className="fw-bold mb-3">Ready to Submit?</h4>
-          <p className="text-muted-custom mb-4">
+        <Modal.Body
+          className="p-4 text-center"
+          style={{ borderRadius: 'var(--radius-lg)' }}
+        >
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              background: 'var(--color-accent-light)',
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem',
+            }}
+          >
+            <ShieldCheck size={22} color="var(--color-accent)" />
+          </div>
+          <h4
+            className="fw-bold mb-2"
+            style={{ fontFamily: 'Fraunces, serif' }}
+          >
+            Ready to Submit?
+          </h4>
+          <p className="text-muted-custom mb-4" style={{ fontSize: '0.95rem' }}>
             Our AI will now analyze your creditworthiness based on this data.
           </p>
           <div className="d-flex gap-2 justify-content-center">
             <button
-              className="btn btn-light custom-input"
+              className="btn fw-semibold"
+              style={{
+                border: '1px solid var(--color-border)',
+                borderRadius: 10,
+                padding: '10px 24px',
+                background: 'white',
+                color: 'var(--color-text)',
+              }}
               onClick={() => setShowConfirm(false)}
             >
               Review Again
             </button>
-            <button className="btn btn-dark-custom" onClick={executeSubmit}>
+            <button className="btn btn-cta" onClick={executeSubmit}>
               Confirm & Predict
             </button>
           </div>

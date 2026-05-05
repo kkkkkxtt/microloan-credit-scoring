@@ -1,103 +1,405 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;1,9..144,400&display=swap');
+
+:root {
+  --color-bg: #f6f4f0;
+  --color-surface: #ffffff;
+  --color-surface-2: #faf9f7;
+  --color-accent: #3d9a6e;
+  --color-accent-light: #e8f5ef;
+  --color-accent-mid: #b2dfc8;
+  --color-text: #1a1a2e;
+  --color-text-muted: #6b7080;
+  --color-border: #e8e5e0;
+  --color-border-light: #f0ede8;
+  --color-tag-bg: #f0f4ff;
+  --color-tag-text: #4a5aa8;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.08);
+}
 
 body {
-  background-color: #f8fafc; /* Very light gray/blue */
-  font-family: 'Inter', sans-serif;
-  color: #0f172a; /* Slate 900 */
+  background-color: var(--color-bg);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--color-text);
 }
 
-/* Typography & Colors */
-.text-slate {
-  color: #0f172a;
-}
-.text-muted-custom {
-  color: #64748b;
-}
-.bg-emerald-light {
-  background-color: #ecfdf5;
-}
-.text-emerald {
-  color: #10b981;
+/* =========================================
+   HOME PAGE HERO REDESIGN
+   ========================================= */
+
+/* Hero Section */
+.home-hero {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: 3rem 2.5rem 2.5rem;
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
 }
 
-/* Custom Cards */
-.custom-card {
-  background: white;
-  border-radius: 24px;
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f1f5f9;
+.home-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(
+    circle,
+    rgba(61, 154, 110, 0.1) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
 }
 
-.record-card {
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
+.home-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  left: -40px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(
+    circle,
+    rgba(74, 90, 168, 0.06) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 50rem;
+  margin-bottom: 1.2rem;
+}
+
+.hero-title {
+  font-family: 'Fraunces', serif;
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+}
+
+.hero-title em {
+  font-style: italic;
+  color: var(--color-accent);
+}
+
+.hero-description {
+  color: var(--color-text-muted);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  max-width: 560px;
+}
+
+/* Stat Pills */
+.stat-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.stat-pill {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 50rem;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-pill .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
+/* CTA Button */
+.btn-cta {
+  background: var(--color-accent) !important;
+  border: none !important;
+  color: #fff !important;
+  border-radius: var(--radius-md) !important;
+  padding: 14px 32px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  font-family: 'DM Sans', sans-serif !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 20px rgba(61, 154, 110, 0.3) !important;
+  letter-spacing: 0.01em;
+}
+.btn-cta:hover {
+  background: #2e7d55 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(61, 154, 110, 0.38) !important;
+}
+.btn-cta:active {
+  transform: scale(0.97) !important;
+}
+
+/* Feature Cards */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 2rem;
+}
+
+.feature-card {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: 1.2rem;
   transition: all 0.2s;
 }
-.record-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+.feature-card:hover {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-mid);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Custom Inputs */
-.custom-input {
-  border-radius: 12px !important;
-  padding: 14px 16px !important;
-  border: 1px solid #e2e8f0 !important;
-  font-size: 1rem;
-  box-shadow: none !important;
-}
-.custom-input:focus {
-  border-color: #10b981 !important;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+.feature-card .fc-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--color-accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  color: var(--color-accent);
 }
 
-/* Custom Buttons */
-.btn-dark-custom {
-  background-color: #0f172a !important;
-  border-color: #0f172a !important;
-  color: white !important;
-  border-radius: 12px !important;
-  padding: 12px 24px !important;
-  font-weight: 600 !important;
+.feature-card .fc-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  margin-bottom: 4px;
 }
-.btn-dark-custom:hover {
-  background-color: #1e293b !important;
+.feature-card .fc-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* About Info Box */
+.about-box {
+  background: linear-gradient(135deg, #f0faf6 0%, #e8f5ef 100%);
+  border: 1px solid var(--color-accent-mid);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.75rem;
+  margin-top: 1.5rem;
+}
+
+.about-box .about-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.6rem;
+}
+
+.about-box p {
+  color: #3a6652;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* =========================================
+   HEADER REDESIGN
+   ========================================= */
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3d9a6e 0%, #5bbf8f 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 12px rgba(61, 154, 110, 0.3);
+}
+
+.brand-name {
+  font-family: 'Fraunces', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1;
+}
+
+.brand-tagline {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  margin: 0;
 }
 
 /* Toggle Pill Buttons (Apply / Record) */
 .toggle-bg {
-  background-color: #f1f5f9;
-  border-radius: 12px;
+  background-color: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 4px;
   display: inline-flex;
 }
-/* .toggle-btn {
-  border-radius: 8px;
-  padding: 8px 24px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-} */
+
 .toggle-btn.active {
-  background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  color: #0f172a;
+  background-color: var(--color-accent);
+  box-shadow: 0 2px 8px rgba(61, 154, 110, 0.25);
+  color: #fff;
+  border-radius: 10px;
 }
 .toggle-btn.inactive {
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .toggle-btn {
-  border-radius: 8px;
-  padding: 8px 24px;
+  border-radius: 10px;
+  padding: 8px 22px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.9rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .toggle-btn:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 .toggle-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
+}
+
+/* =========================================
+   RECORD TAB
+   ========================================= */
+
+.record-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+  transition: all 0.2s;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.record-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-accent-mid);
+  transform: translateY(-1px);
+}
+
+/* =========================================
+   GENERAL COMPONENT STYLES
+   ========================================= */
+
+/* Typography & Colors */
+.text-slate {
+  color: var(--color-text);
+}
+.text-muted-custom {
+  color: var(--color-text-muted);
+}
+.bg-emerald-light {
+  background-color: var(--color-accent-light);
+}
+.text-emerald {
+  color: var(--color-accent);
+}
+
+/* Custom Cards */
+.custom-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border-light);
+}
+
+/* Custom Inputs */
+.custom-input {
+  border-radius: var(--radius-sm) !important;
+  padding: 14px 16px !important;
+  border: 1px solid var(--color-border) !important;
+  font-size: 1rem;
+  box-shadow: none !important;
+  background: var(--color-surface-2) !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
+.custom-input:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px rgba(61, 154, 110, 0.12) !important;
+  background: var(--color-surface) !important;
+}
+
+/* Keep old dark button for internal use, but provide new CTA */
+.btn-dark-custom {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: white !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+  font-family: 'DM Sans', sans-serif !important;
+  transition: all 0.2s !important;
+  box-shadow: 0 4px 14px rgba(61, 154, 110, 0.28) !important;
+}
+.btn-dark-custom:hover {
+  background-color: #2e7d55 !important;
+  transform: translateY(-1px);
 }
 
 /* Form Step Indicators */
@@ -109,17 +411,17 @@ body {
   margin-left: 6px;
 }
 .step-dash.active {
-  background-color: #10b981;
+  background-color: var(--color-accent);
 }
 .step-dash.inactive {
-  background-color: #e2e8f0;
+  background-color: var(--color-border);
 }
 
 .step-circle {
   width: 32px;
   height: 32px;
-  background-color: #d1fae5;
-  color: #047857;
+  background-color: var(--color-accent-light);
+  color: var(--color-accent);
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -130,18 +432,19 @@ body {
 
 /* Gender Toggle Buttons */
 .gender-btn {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   padding: 12px 32px;
-  background: white;
+  background: var(--color-surface);
   font-weight: 500;
-  color: #64748b;
+  color: var(--color-text-muted);
   transition: all 0.2s;
+  font-family: 'DM Sans', sans-serif;
 }
 .gender-btn.active {
-  border-color: #10b981;
-  color: #10b981;
-  background-color: #ecfdf5;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background-color: var(--color-accent-light);
 }
 
 /* Fix for Date Picker and Error Icon Collision */
@@ -151,29 +454,26 @@ body {
   margin-bottom: 5px;
 }
 
-/* Ensure the error text has its own space and doesn't float into the input */
 .text-danger.small {
   display: block;
   clear: both;
   font-weight: 500;
   line-height: 1.4;
-  /* Adds extra padding to ensure it clears the input shadow */
   padding-top: 4px;
 }
 
-/* Specific fix for the date input's browser-specific calendar icon */
 input[type='date'].is-invalid::-webkit-calendar-picker-indicator {
   margin-right: 10px;
 }
 
 /* Animations */
 .fade-in {
-  animation: fadeIn 0.4s ease-in-out;
+  animation: fadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -198,13 +498,12 @@ input[type='date'].is-invalid::-webkit-calendar-picker-indicator {
   border-radius: 10px;
 }
 
-/* --- New Waterfall Form Animations --- */
+/* Waterfall Form Animations */
 .slide-down {
   animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top;
   opacity: 0;
 }
-
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -220,15 +519,12 @@ input[type='date'].is-invalid::-webkit-calendar-picker-indicator {
   position: relative;
   margin-bottom: 2rem;
 }
-
-/* Align all form inputs horizontally regardless of label length */
 .form-section .form-label {
-  min-height: 42px; /* Reserves enough space for exactly 2 lines of text */
+  min-height: 42px;
   display: flex;
-  align-items: flex-end; /* Pushes single-line text to the bottom, hugging the input */
+  align-items: flex-end;
   margin-bottom: 8px;
 }
-
 .form-section::after {
   content: '';
   position: absolute;
@@ -236,25 +532,23 @@ input[type='date'].is-invalid::-webkit-calendar-picker-indicator {
   left: 5%;
   width: 90%;
   height: 1px;
-  background: #e2e8f0;
+  background: var(--color-border-light);
 }
-
 .form-section:last-of-type::after {
   display: none;
 }
 
-/* Make the Next/Submit button area sticky so it's always easy to reach */
 .sticky-action-bar {
   position: sticky;
   bottom: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
   padding: 1rem 2rem;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.1),
-    0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  border: 1px solid #f1f5f9;
+    0 10px 25px -5px rgba(0, 0, 0, 0.09),
+    0 8px 10px -6px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--color-border-light);
   z-index: 100;
   transition: all 0.3s ease;
 }

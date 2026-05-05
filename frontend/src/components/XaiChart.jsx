@@ -115,26 +115,42 @@ const XaiChart = ({ data }) => {
       const details = getFeatureDetails(dataPoint.feature || dataPoint.name);
       return (
         <div
-          className="bg-white p-3 border rounded-3 shadow-lg"
-          style={{ maxWidth: '320px', zIndex: 9999 }}
+          style={{
+            background: 'white',
+            border: '1px solid var(--color-border-light)',
+            borderRadius: '14px',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.09)',
+            maxWidth: '300px',
+            padding: '1rem',
+            fontFamily: 'DM Sans, sans-serif',
+            zIndex: 9999,
+          }}
         >
-          <strong className="d-block text-dark mb-2 pb-2 border-bottom border-light">
+          <strong
+            style={{
+              display: 'block',
+              color: 'var(--color-text)',
+              marginBottom: '0.5rem',
+              paddingBottom: '0.5rem',
+              borderBottom: '1px solid var(--color-border-light)',
+              fontSize: '0.88rem',
+            }}
+          >
             {details.name}
           </strong>
           <div className="mb-2 small">
             <span className="fw-bold text-slate">Impact: </span>
             <span
-              className={
-                dataPoint.effect > 0
-                  ? 'text-danger fw-bold'
-                  : 'text-emerald fw-bold'
-              }
+              style={{
+                color: dataPoint.effect > 0 ? '#f87171' : '#3d9a6e',
+                fontWeight: 700,
+              }}
             >
               {(dataPoint.effect || dataPoint.value).toFixed(5)}
             </span>
           </div>
           <div className="small text-muted-custom lh-base">
-            <span className="fw-bold text-slate">Explanation: </span>
+            <span className="fw-bold text-slate">Why: </span>
             {details.reason}
           </div>
         </div>
@@ -146,10 +162,21 @@ const XaiChart = ({ data }) => {
   return (
     <div className="mt-2">
       <Row>
-        {/* Graph 1: Feature Impact Breakdown (Unchanged) */}
+        {/* Graph 1: Feature Impact Breakdown */}
         <Col md={12} lg={7} className="mb-4">
-          <div className="bg-light p-3 rounded border h-100">
-            <h6 className="fw-bold text-center mb-3 text-slate">
+          <div
+            style={{
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-border-light)',
+              borderRadius: 'var(--radius-md)',
+              padding: '1.25rem',
+            }}
+            className="h-100"
+          >
+            <h6
+              className="fw-bold text-center mb-3 text-slate"
+              style={{ fontFamily: 'Fraunces, serif', fontSize: '1rem' }}
+            >
               Feature Impact Breakdown
             </h6>
             <div style={{ width: '100%', height: 350 }}>
@@ -159,96 +186,130 @@ const XaiChart = ({ data }) => {
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0ede8" />
                   <XAxis type="number" hide />
                   <YAxis
                     dataKey="feature"
                     type="category"
                     width={140}
                     fontSize={11}
-                    tick={{ fill: '#64748b' }}
+                    tick={{
+                      fill: '#6b7080',
+                      fontFamily: 'DM Sans, sans-serif',
+                    }}
                   />
                   <Tooltip
                     content={<CustomTooltip />}
-                    cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                    cursor={{ fill: 'rgba(61,154,110,0.05)' }}
                   />
-                  <ReferenceLine x={0} stroke="#94a3b8" />
-                  <Bar dataKey="effect" radius={[0, 4, 4, 0]}>
+                  <ReferenceLine x={0} stroke="#cbd5c0" />
+                  <Bar dataKey="effect" radius={[0, 5, 5, 0]}>
                     {sortedData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={entry.effect > 0 ? '#ef4444' : '#10b981'}
+                        fill={entry.effect > 0 ? '#f87171' : '#3d9a6e'}
                       />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-center small text-muted-custom mt-2 mb-0">
+            <p
+              className="text-center small text-muted-custom mt-2 mb-0"
+              style={{ fontSize: '0.78rem' }}
+            >
               Hover over a bar for a detailed explanation.
             </p>
           </div>
         </Col>
 
-        {/* Graph 2: NEW Category Risk Profile */}
+        {/* Graph 2: Category Risk Profile */}
         <Col md={12} lg={5} className="mb-4">
-          <div className="bg-light p-3 rounded border h-100">
-            <h6 className="fw-bold text-center mb-3 text-slate">
+          <div
+            style={{
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-border-light)',
+              borderRadius: 'var(--radius-md)',
+              padding: '1.25rem',
+            }}
+            className="h-100"
+          >
+            <h6
+              className="fw-bold text-center mb-3 text-slate"
+              style={{ fontFamily: 'Fraunces, serif', fontSize: '1rem' }}
+            >
               Risk Profile by Category
             </h6>
             <div style={{ width: '100%', height: 350 }}>
               <ResponsiveContainer>
-                {/* Horizontal Grouped Bar Chart */}
                 <BarChart
                   data={categoryData}
                   margin={{ top: 20, right: 10, left: -20, bottom: 25 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  {/* Angle the text so the category names fit nicely */}
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#f0ede8"
+                  />
                   <XAxis
                     dataKey="category"
-                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    tick={{
+                      fontSize: 11,
+                      fill: '#6b7080',
+                      fontFamily: 'DM Sans, sans-serif',
+                    }}
                     angle={-35}
                     textAnchor="end"
                     interval={0}
                   />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
-
-                  {/* Clean, standard tooltip for comparing the two bars */}
+                  <YAxis
+                    tick={{
+                      fontSize: 11,
+                      fill: '#6b7080',
+                      fontFamily: 'DM Sans, sans-serif',
+                    }}
+                  />
                   <Tooltip
-                    cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+                    cursor={{ fill: 'rgba(61,154,110,0.05)' }}
                     contentStyle={{
-                      borderRadius: '8px',
-                      border: '1px solid #e2e8f0',
-                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                      borderRadius: '12px',
+                      border: '1px solid var(--color-border-light)',
+                      boxShadow: '0 10px 24px rgba(0,0,0,0.08)',
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: '0.85rem',
                     }}
                     formatter={(value) => value.toFixed(4)}
                   />
-
                   <Legend
                     verticalAlign="top"
                     height={36}
                     iconType="circle"
-                    wrapperStyle={{ fontSize: '12px' }}
+                    wrapperStyle={{
+                      fontSize: '12px',
+                      fontFamily: 'DM Sans, sans-serif',
+                    }}
                   />
                   <Bar
                     dataKey="risk"
                     name="Risk Force"
-                    fill="#ef4444"
-                    radius={[4, 4, 0, 0]}
+                    fill="#f87171"
+                    radius={[5, 5, 0, 0]}
                     barSize={22}
                   />
                   <Bar
                     dataKey="protective"
                     name="Protective Force"
-                    fill="#10b981"
-                    radius={[4, 4, 0, 0]}
+                    fill="#3d9a6e"
+                    radius={[5, 5, 0, 0]}
                     barSize={22}
                   />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-center small text-muted-custom mt-2 mb-0">
+            <p
+              className="text-center small text-muted-custom mt-2 mb-0"
+              style={{ fontSize: '0.78rem' }}
+            >
               Aggregated risk vs. protective factors across applicant areas.
             </p>
           </div>
