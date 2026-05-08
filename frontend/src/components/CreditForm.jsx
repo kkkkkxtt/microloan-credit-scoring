@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Form, Row, Col, Modal, Alert } from 'react-bootstrap';
 import {
   ChevronRight,
@@ -8,8 +8,10 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { getLatestId } from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 
 const CreditForm = ({ onSubmit, onCancel }) => {
+  const { user } = useContext(AuthContext);
   const [step, setStep] = useState(1);
   const [showDiscard, setShowDiscard] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -20,19 +22,20 @@ const CreditForm = ({ onSubmit, onCancel }) => {
 
   const [formData, setFormData] = useState({
     applicant_ic: '',
-    CODE_GENDER: '',
-    birth_date: '',
+    // Auto-filled from profile when available
+    CODE_GENDER: user?.profile?.gender || '',
+    birth_date: user?.profile?.date_of_birth || '',
     NAME_EDUCATION_TYPE: 'Secondary / secondary special',
     NAME_FAMILY_STATUS: 'Married',
     CNT_CHILDREN: 0,
     CNT_FAM_MEMBERS: 1,
 
-    FLAG_EMAIL: '0',
-    FLAG_MOBIL: '1',
+    FLAG_EMAIL: user?.email ? '1' : '0',
+    FLAG_MOBIL: user?.profile?.phone_number ? '1' : '0',
     FLAG_EMP_PHONE: '0',
     FLAG_WORK_PHONE: '0',
     FLAG_PHONE: '0',
-    FLAG_CONT_MOBILE: '1',
+    FLAG_CONT_MOBILE: user?.profile?.phone_number ? '1' : '0',
     DAYS_LAST_PHONE_CHANGE: 0,
     FLAG_OWN_CAR: 'N',
     OWN_CAR_AGE: 0,
@@ -51,7 +54,7 @@ const CreditForm = ({ onSubmit, onCancel }) => {
     LIVE_REGION_NOT_WORK_REGION: '0',
 
     NAME_INCOME_TYPE: 'Working',
-    AMT_INCOME_TOTAL: '',
+    AMT_INCOME_TOTAL: user?.profile?.annual_income || '',
     OCCUPATION_TYPE: 'Laborers',
     ORGANIZATION_TYPE: 'Business Entity Type 3',
     employed_date: '',
@@ -551,7 +554,7 @@ const CreditForm = ({ onSubmit, onCancel }) => {
             className="fw-bold text-slate fs-5"
             style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
           >
-            {formData.applicant_ic}
+            AP{formData.applicant_ic} {/* <-- Added AP prefix here */}
           </span>
         </div>
         <div
@@ -967,10 +970,12 @@ const CreditForm = ({ onSubmit, onCancel }) => {
                   )}
                 </Form.Group>
               </Col>
-              <Col md={4}>
-                <Form.Group className="mb-4">
-                  <Form.Label className="text-muted-custom small fw-semibold">
-                    Maintenance fund structure?
+              {/* Clearer Maintenance Fund Question & Answers --- */}
+              <Col md={6} className="mb-4">
+                <Form.Group>
+                  <Form.Label className="fw-semibold text-slate">
+                    How are the maintenance and repair funds for your building
+                    managed?
                   </Form.Label>
                   <Form.Select
                     className="custom-input"
@@ -979,16 +984,18 @@ const CreditForm = ({ onSubmit, onCancel }) => {
                       handleChange('FONDKAPREMONT_MODE', e.target.value)
                     }
                   >
+                    <option value="not specified">
+                      Not Specified / I don't know
+                    </option>
                     <option value="reg oper account">
-                      Regular Operations Account
+                      Standard Building Management Account
                     </option>
                     <option value="org spec account">
-                      Org Specific Account
+                      Specific Organization (e.g., Housing Authority)
                     </option>
                     <option value="reg oper spec account">
-                      Reg Oper Spec Account
+                      Dedicated Special Repair Fund Account
                     </option>
-                    <option value="not specified">Not Specified</option>
                   </Form.Select>
                 </Form.Group>
               </Col>

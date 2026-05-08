@@ -32,3 +32,11 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.3
 uvicorn==0.42.0
+passlib==1.7.4
+python-jose==3.5.0
+bcrypt==3.2.2
+ecdsa==0.19.2
+cryptography==48.0.0
+pyasn1==0.6.3
+rsa==4.9.1
+email-validator==2.3.0

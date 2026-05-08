@@ -1,27 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Container, Row, Col, Spinner, Form, Alert } from 'react-bootstrap';
 import {
   Search,
   ArrowRight,
-  Info,
   User,
   Calendar,
   DollarSign,
   ArrowLeft,
-  Zap,
   ShieldCheck,
-  BarChart2,
   Sparkles,
+  LogOut,
+  Users,
 } from 'lucide-react';
 import axios from 'axios';
 import GaugeChart from 'react-gauge-chart';
 import CreditForm from './components/CreditForm';
 import XaiChart from './components/XaiChart';
 import { predictLoan } from './services/api';
+import { AuthContext } from './context/AuthContext';
+import Login from './components/Login';
+import Register from './components/Register';
+import Profile from './components/Profile';
+import OfficerDashboard from './components/OfficerDashboard';
+import MainPage from './components/MainPage';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
+  const { user, logout, loading: authLoading } = useContext(AuthContext);
+
+  const [showAuth, setShowAuth] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+
   const [currentView, setCurrentView] = useState('home');
   const [homeTab, setHomeTab] = useState('apply');
   const [result, setResult] = useState(null);
@@ -31,70 +41,85 @@ function App() {
   const [resultView, setResultView] = useState('analysis');
   const [searchError, setSearchError] = useState('');
 
+  // --- NEW: Applicant Pagination State ---
+  const [historyPage, setHistoryPage] = useState(1);
+  const historyPerPage = 5;
+
+  useEffect(() => {
+    if (user) {
+      setShowAuth(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     const fetchInitialHistory = async () => {
-      if (homeTab === 'record') {
-        // 1. Force the search bar to stay completely empty!
+      if (homeTab === 'record' && user?.role === 'applicant') {
         setSearchQuery('');
+        setHistoryPage(1); // Reset page on tab load
 
-        // 2. Optimistically load the 5 recent records from local storage
+        let cachedRecords = [];
         const recentJson = localStorage.getItem('recent_records');
         if (recentJson) {
           try {
-            const recent = JSON.parse(recentJson || '[]');
-            setHistory(recent.slice(0, 5));
-          } catch (err) {
-            console.error('Failed to parse recent_records from localStorage');
-          }
+            cachedRecords = JSON.parse(recentJson || '[]');
+            setHistory(cachedRecords); // Show instantly to prevent flickering
+          } catch (err) {}
         }
 
-        // 3. Background Check: Was the database completely reset?
-        const savedIC = localStorage.getItem('last_ic');
-        if (savedIC) {
+        // --- STRICT DATABASE SYNC ---
+        if (cachedRecords.length > 0) {
           try {
-            // Just ask the DB if our most recent application still exists
-            const response = await axios.get(
-              `http://127.0.0.1:8000/history/${savedIC}`,
-            );
+            const promises = cachedRecords.map((rec) => {
+              const ic = rec.applicant_ic || rec.raw_features_log?.applicant_ic;
+              return axios
+                .get(`http://127.0.0.1:8000/history/${ic}`)
+                .catch(() => null);
+            });
 
-            // If the database returns an empty array, it means you dropped the tables!
-            if (!response.data || response.data.length === 0) {
-              console.warn(
-                'Database reset detected. Clearing outdated local cache.',
-              );
-              localStorage.removeItem('recent_records');
-              localStorage.removeItem('last_ic');
-              setHistory([]);
-            }
-            // CRITICAL FIX: If the DB *does* have it, we do NOTHING.
-            // We leave the 5 local records on the screen instead of overwriting them!
+            const responses = await Promise.all(promises);
+            const validRecords = [];
+
+            responses.forEach((res) => {
+              // ONLY keep the record if the database actually returns it
+              if (res && res.data && res.data.length > 0) {
+                validRecords.push(res.data[0]);
+              }
+            });
+            setHistory(validRecords);
+            localStorage.setItem(
+              'recent_records',
+              JSON.stringify(validRecords.slice(0, 50)),
+            );
           } catch (err) {
-            console.error('History fetch error');
+            console.error('Failed to sync history with database:', err);
           }
         }
       }
     };
     fetchInitialHistory();
-  }, [homeTab]);
+  }, [homeTab, user]);
 
   const handleSearch = async (icToSearch = searchQuery) => {
     setSearchError('');
-    if (!icToSearch) {
-      setSearchError('Please enter an ID to search.');
-      return;
-    }
+    if (!icToSearch) return setSearchError('Please enter an ID to search.');
+
+    //Strip 'AP' or 'OWAP' prefixes from the search query so the DB can find it ---
+    const cleanIc = String(icToSearch)
+      .toUpperCase()
+      .replace(/^(AP|OWAP|OWA)/, '')
+      .trim();
+
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/history/${icToSearch}`,
+        `http://127.0.0.1:8000/history/${cleanIc}`,
       );
       if (!response.data || response.data.length === 0) {
         setHistory([]);
-        setSearchError('Record not exist');
-        return;
+        return setSearchError('Record not exist');
       }
-      setHistory(response.data.slice(0, 5));
+      setHistory(response.data);
+      setHistoryPage(1);
     } catch (err) {
-      console.error('History fetch error', err);
       setHistory([]);
       setSearchError('Record not exist');
     }
@@ -106,39 +131,30 @@ function App() {
     try {
       const response = await predictLoan(data);
       setResult(response);
-
-      // 1. Save the last searched IC
       localStorage.setItem('last_ic', data.applicant_ic);
-
-      // 2. Maintain the per-device recent records list (most recent first, up to 5)
       try {
         const existing = JSON.parse(
           localStorage.getItem('recent_records') || '[]',
         );
-
         const newRecord = {
-          ...(response || {}),
+          ...response,
           applicant_ic: data.applicant_ic,
           application_date:
             response.application_date || new Date().toISOString(),
-          raw_features_log: data, // Ensure the raw data is saved locally for the Form Record tab
+          raw_features_log: data,
         };
-
-        // Remove duplicates and keep the newest at the top
         const deduped = [
           newRecord,
           ...existing.filter(
             (r) => String(r.applicant_ic) !== String(newRecord.applicant_ic),
           ),
         ];
-
+        // Allow up to 50 records stored locally so pagination works well locally
         localStorage.setItem(
           'recent_records',
-          JSON.stringify(deduped.slice(0, 5)),
+          JSON.stringify(deduped.slice(0, 50)),
         );
-      } catch (err) {
-        console.error('Failed to update recent_records', err);
-      }
+      } catch (err) {}
     } catch (err) {
       alert('Analysis failed. Check backend connection.');
       setCurrentView('form');
@@ -147,416 +163,352 @@ function App() {
     }
   };
 
-  return (
-    <Container className="py-4" style={{ maxWidth: '1000px' }}>
-      <style>{`.btn-animated{transition:transform .15s ease, box-shadow .15s ease;} .btn-animated:hover{transform:translateY(-3px) scale(1.02); box-shadow:0 8px 28px rgba(15,23,42,0.06);} .record-detail-btn{transition: color .12s ease, transform .12s ease;} .record-detail-btn:hover{transform:translateX(6px);}`}</style>
-      {/* GLOBAL HEADER */}
-      {currentView === 'home' && (
-        <div className="app-header mb-4">
-          <div className="brand-logo">
-            <div className="brand-logo-mark">C</div>
-            <div>
-              <p className="brand-name">Credify</p>
-              <p className="brand-tagline">Microloan Credit Scoring Platform</p>
-            </div>
-          </div>
-          <div className="toggle-bg">
-            <div
-              className={`toggle-btn ${homeTab === 'apply' ? 'active' : 'inactive'}`}
-              onClick={() => setHomeTab('apply')}
+  const handleViewOfficerDetail = async (app) => {
+    setLoading(true);
+    setCurrentView('result');
+    try {
+      const response = await axios.get(
+        `http://127.0.0.1:8000/history/${app.applicant_ic}`,
+      );
+      if (response.data && response.data.length > 0) {
+        setResult(response.data[0]);
+      } else {
+        setResult(app);
+      }
+    } catch (e) {
+      setResult(app);
+    }
+    setLoading(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setHomeTab('apply');
+    setCurrentView('home');
+    setHistoryPage(1);
+  };
+
+  if (authLoading)
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" style={{ color: '#10b981' }} />
+      </div>
+    );
+
+  if (!user) {
+    if (showAuth) {
+      return (
+        <div
+          className="min-vh-100 d-flex flex-column align-items-center justify-content-center"
+          style={{ background: '#f8fafc' }}
+        >
+          <div
+            style={{ maxWidth: '500px', width: '100%', paddingLeft: '1rem' }}
+          >
+            <button
+              className="btn btn-link text-muted-custom text-decoration-none p-0 mb-3 d-flex align-items-center"
+              onClick={() => setShowAuth(false)}
             >
-              Apply
-            </div>
-            <div
-              className={`toggle-btn ${homeTab === 'record' ? 'active' : 'inactive'}`}
-              onClick={() => setHomeTab('record')}
-            >
-              Record
-            </div>
+              <ArrowLeft size={18} className="me-1" /> Back to Home
+            </button>
           </div>
-        </div>
-      )}
-
-      {/* HOME PAGE */}
-      {currentView === 'home' && (
-        <div className="fade-in">
-          {homeTab === 'apply' ? (
-            <div className="fade-in">
-              {/* Hero Card */}
-              <div className="home-hero mb-4">
-                <div className="hero-eyebrow">
-                  <Sparkles size={12} /> ML-Powered Credit Scoring
-                </div>
-                <h2 className="hero-title">
-                  Fast, fair credit decisions
-                  <br />
-                  you can <em>understand</em>
-                </h2>
-                <p className="hero-description">
-                  Credify uses advanced Machine Learning to assess microloan
-                  applications in minutes — giving you a transparent decision
-                  with a clear explanation of the factors that shaped it.
-                </p>
-
-                <div className="stat-pills">
-                  <div className="stat-pill">
-                    <span className="dot"></span> Instant Analysis
-                  </div>
-                  <div className="stat-pill">
-                    <span className="dot"></span> Explainable AI
-                  </div>
-                  <div className="stat-pill">
-                    <span className="dot"></span> Financial Inclusion
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <button
-                    className="btn btn-cta"
-                    onClick={() => setCurrentView('form')}
-                  >
-                    Start Application <ArrowRight size={18} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Feature Grid */}
-              <div className="feature-grid mb-4">
-                <div className="feature-card">
-                  <div className="fc-icon">
-                    <Zap size={18} />
-                  </div>
-                  <div className="fc-title">Instant Results</div>
-                  <div className="fc-desc">
-                    Get a credit decision in seconds, not days.
-                  </div>
-                </div>
-                <div className="feature-card">
-                  <div className="fc-icon">
-                    <ShieldCheck size={18} />
-                  </div>
-                  <div className="fc-title">Transparent & Fair</div>
-                  <div className="fc-desc">
-                    Understand exactly why a decision was made.
-                  </div>
-                </div>
-                <div className="feature-card">
-                  <div className="fc-icon">
-                    <BarChart2 size={18} />
-                  </div>
-                  <div className="fc-title">AI-Driven Insights</div>
-                  <div className="fc-desc">
-                    Advanced ML models with explainability built in.
-                  </div>
-                </div>
-              </div>
-
-              {/* About Box */}
-              <div className="about-box">
-                <div className="about-title">
-                  <Info size={16} /> About Credify
-                </div>
-                <p>
-                  Credify helps individuals and small businesses access
-                  microloan credit assessments that were previously available
-                  only to large institutions. We believe everyone deserves to
-                  know their creditworthiness — and the reasons behind it.
-                </p>
-              </div>
-            </div>
+          {showRegister ? (
+            <Register switchToLogin={() => setShowRegister(false)} />
           ) : (
-            <div>
-              <div className="mb-5 d-flex gap-2">
-                <div className="position-relative flex-grow-1">
-                  <Search
-                    className="position-absolute text-muted-custom"
-                    style={{ left: '16px', top: '16px' }}
-                    size={20}
-                  />
-                  <Form.Control
-                    type="text"
-                    placeholder="Enter ID to Search History Record..."
-                    className="custom-input ps-5"
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      if (searchError) setSearchError('');
-                    }}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  />
-                </div>
-                <button
-                  className={`btn btn-dark-custom btn-animated ${!searchQuery ? 'disabled' : ''}`}
-                  onClick={() => handleSearch()}
-                  disabled={!searchQuery}
-                >
-                  Search Record
-                </button>
-              </div>
-              {searchError && (
-                <Alert variant="warning" className="mb-3">
-                  {searchError}
-                </Alert>
-              )}
-              <h5 className="fw-bold text-slate mb-3">Past Records</h5>
-              {history.map((record, index) => {
-                const ic =
-                  record.applicant_ic ||
-                  record.raw_features_log?.applicant_ic ||
-                  'Unknown';
-                const gender =
-                  record.CODE_GENDER ?? record.raw_features_log?.CODE_GENDER;
-                const income =
-                  record.AMT_INCOME_TOTAL ??
-                  record.raw_features_log?.AMT_INCOME_TOTAL;
-
-                // --- NEW AGE CALCULATION ---
-                // We use DAYS_BIRTH because that represents the applicant's age
-                const daysBirth =
-                  record.DAYS_BIRTH ?? record.raw_features_log?.DAYS_BIRTH;
-                const ageYears = daysBirth
-                  ? Math.floor(Math.abs(daysBirth) / 365.25)
-                  : 'N/A';
-
-                return (
-                  <div
-                    key={record.id || index}
-                    className="record-card bg-white p-4 mb-3"
-                  >
-                    <div className="d-flex justify-content-between mb-3">
-                      <div className="d-flex gap-3 align-items-center">
-                        <span className="badge bg-light text-dark border p-2">
-                          ID: {ic}
-                        </span>
-                        <span
-                          className={`badge ${record.decision === 'Approve' ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${record.decision === 'Approve' ? 'text-success' : 'text-danger'} p-2 px-3`}
-                        >
-                          {record.decision}
-                        </span>
-                      </div>
-                      <span className="text-muted-custom small">
-                        {record.application_date
-                          ? new Date(record.application_date).toLocaleString()
-                          : 'Just now'}
-                      </span>
-                    </div>
-                    <Row className="align-items-center">
-                      <Col
-                        xs={3}
-                        className="text-muted-custom small d-flex align-items-center gap-2"
-                      >
-                        <User size={16} />{' '}
-                        {gender === 0 || gender === 'F' ? 'Female' : 'Male'}
-                      </Col>
-
-                      {/* --- UPDATED COLUMN: SHOWS AGE INSTEAD OF DAYS --- */}
-                      <Col
-                        xs={3}
-                        className="text-muted-custom small d-flex align-items-center gap-2"
-                      >
-                        <Calendar size={16} /> {ageYears} Years Old
-                      </Col>
-
-                      <Col
-                        xs={3}
-                        className="text-muted-custom small d-flex align-items-center gap-2"
-                      >
-                        <DollarSign size={16} />{' '}
-                        {income !== undefined && income !== null
-                          ? `$${income.toLocaleString()}`
-                          : 'N/A'}
-                      </Col>
-                      <Col xs={3} className="text-end">
-                        <button
-                          className="btn btn-link p-0 small text-emerald fw-bold d-inline-flex align-items-center record-detail-btn"
-                          onClick={() => {
-                            setResult(record);
-                            setCurrentView('result');
-                          }}
-                        >
-                          Click for Details <ArrowRight size={14} />
-                        </button>
-                      </Col>
-                    </Row>
-                  </div>
-                );
-              })}
-            </div>
+            <Login switchToRegister={() => setShowRegister(true)} />
           )}
         </div>
-      )}
+      );
+    }
+    return <MainPage onLoginClick={() => setShowAuth(true)} />;
+  }
 
-      {/* FORM VIEW */}
-      {currentView === 'form' && (
-        <CreditForm
-          onSubmit={handleFormSubmit}
-          onCancel={() => setCurrentView('home')}
-        />
-      )}
+  const renderResultView = () => {
+    const finalDecision = result?.decision || result?.ai_decision || 'Unknown';
+    const riskProb = result?.risk_probability || 0;
 
-      {/* RESULT DASHBOARD */}
-      {currentView === 'result' && (
-        <div className="fade-in">
-          {loading ? (
-            <div className="text-center py-5 mt-5">
-              <Spinner
-                animation="border"
-                style={{ color: '#10b981', width: '3rem', height: '3rem' }}
-              />
-              <h4 className="mt-4 fw-bold text-slate">Analyzing Profile...</h4>
-            </div>
-          ) : (
-            result && (
-              <div className="fade-in">
-                {/* --- HEADER WITH SWAP BUTTON (Removed Download/Share) --- */}
-                <div className="d-flex justify-content-between align-items-center mb-4">
+    return (
+      <div className="fade-in">
+        {loading ? (
+          <div className="text-center py-5 mt-5">
+            <Spinner
+              animation="border"
+              style={{ color: '#10b981', width: '3rem', height: '3rem' }}
+            />
+            <h4 className="mt-4 fw-bold text-slate">Analyzing Profile...</h4>
+          </div>
+        ) : (
+          result && (
+            <div className="fade-in">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <button
+                  className="btn btn-link text-muted-custom text-decoration-none p-0 d-flex align-items-center"
+                  onClick={() => {
+                    setCurrentView('home');
+                    setResultView('analysis');
+                  }}
+                  style={{ width: '150px' }}
+                >
+                  <ArrowLeft size={20} className="me-2" /> Back
+                </button>
+
+                <div
+                  className="p-1 rounded-pill d-inline-flex"
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
                   <button
-                    className="btn btn-link text-muted-custom text-decoration-none p-0 d-flex align-items-center"
-                    onClick={() => {
-                      setCurrentView('home');
-                      setResultView('analysis'); // Reset to analysis when leaving
-                    }}
-                    style={{ width: '150px' }} // Fixed width to keep center toggle perfectly centered
-                  >
-                    <ArrowLeft size={20} className="me-2" /> Back to Home
-                  </button>
-                  {/* SWAP BUTTON (Form Record Left, AI Analysis Right) */}
-                  <div
-                    className="p-1 rounded-pill d-inline-flex"
+                    className="toggle-btn border-0"
                     style={{
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0',
+                      backgroundColor:
+                        resultView === 'record' ? '#e2e8f0' : 'transparent',
+                      color: resultView === 'record' ? '#475569' : '#94a3b8',
+                      fontWeight: '600',
+                      borderRadius: '50rem',
+                      transition: 'all 0.2s ease-in-out',
                     }}
+                    onClick={() => setResultView('record')}
                   >
-                    {/* BUTTON 1: FORM RECORD (Now on the Left) */}
-                    <button
-                      className="toggle-btn border-0"
-                      style={{
-                        backgroundColor:
-                          resultView === 'record' ? '#e2e8f0' : 'transparent',
-                        color: resultView === 'record' ? '#475569' : '#94a3b8',
-                        fontWeight: '600',
-                        borderRadius: '50rem',
-                        transition: 'all 0.2s ease-in-out',
-                      }}
-                      onClick={() => setResultView('record')}
-                    >
-                      Form Record
-                    </button>
-
-                    {/* BUTTON 2: AI ANALYSIS (Now on the Right) */}
-                    <button
-                      className="toggle-btn border-0"
-                      style={{
-                        backgroundColor:
-                          resultView === 'analysis' ? '#e2e8f0' : 'transparent',
-                        color:
-                          resultView === 'analysis' ? '#475569' : '#94a3b8',
-                        fontWeight: '600',
-                        borderRadius: '50rem',
-                        transition: 'all 0.2s ease-in-out',
-                      }}
-                      onClick={() => setResultView('analysis')}
-                    >
-                      AI Analysis
-                    </button>
-                  </div>
-                  <div style={{ width: '150px' }}></div>{' '}
-                  {/* Empty spacer for perfect centering */}
+                    Form Record
+                  </button>
+                  <button
+                    className="toggle-btn border-0"
+                    style={{
+                      backgroundColor:
+                        resultView === 'analysis' ? '#e2e8f0' : 'transparent',
+                      color: resultView === 'analysis' ? '#475569' : '#94a3b8',
+                      fontWeight: '600',
+                      borderRadius: '50rem',
+                      transition: 'all 0.2s ease-in-out',
+                    }}
+                    onClick={() => setResultView('analysis')}
+                  >
+                    AI Analysis
+                  </button>
                 </div>
+                <div style={{ width: '150px' }}></div>
+              </div>
 
-                {/* --- CONTENT AREA --- */}
-                {resultView === 'analysis' ? (
-                  /* =========================================
-                     TAB 1: AI ANALYSIS (Your existing dashboard)
-                     ========================================= */
-                  <div className="custom-card p-4 p-md-5 slide-down">
-                    <Row className="align-items-center border-bottom pb-4 mb-4">
-                      <Col md={5} className="text-center">
-                        <GaugeChart
-                          id="gauge-chart"
-                          nrOfLevels={2}
-                          colors={['#10b981', '#ef4444']}
-                          arcWidth={0.15}
-                          percent={result.decision === 'Approve' ? 0.25 : 0.85}
-                          textColor="#0f172a"
-                          hideText={true}
-                          style={{ width: '80%', margin: '0 auto' }}
-                        />
-                        <h2
-                          className={`fw-bold mt-2 ${result.decision === 'Approve' ? 'text-emerald' : 'text-danger'}`}
+              {resultView === 'analysis' ? (
+                <div className="custom-card p-4 p-md-5 slide-down">
+                  <Row className="align-items-center border-bottom pb-4 mb-4">
+                    <Col md={5} className="text-center">
+                      <GaugeChart
+                        id="gauge-chart"
+                        nrOfLevels={2}
+                        colors={['#10b981', '#ef4444']}
+                        arcWidth={0.15}
+                        percent={finalDecision === 'Approve' ? 0.25 : 0.85}
+                        textColor="#0f172a"
+                        hideText={true}
+                        style={{ width: '80%', margin: '0 auto' }}
+                      />
+                      <h2
+                        className={`fw-bold mt-2 ${finalDecision === 'Approve' ? 'text-emerald' : 'text-danger'}`}
+                      >
+                        {finalDecision}
+                      </h2>
+                      <p className="text-muted-custom fw-semibold">
+                        Probability of Default : {(riskProb * 100).toFixed(1)}%{' '}
+                        <br></br> Score: {((1 - riskProb) * 100).toFixed(1)}
+                        /100
+                      </p>
+                    </Col>
+                    <Col md={7}>
+                      <h3 className="fw-bold text-slate mb-3">
+                        Final Decision
+                      </h3>
+                      <p className="text-muted-custom mb-4">
+                        Based on our ML analysis of your financial profile, your
+                        microloan application has been
+                        <strong
+                          className={
+                            finalDecision === 'Approve'
+                              ? 'text-emerald'
+                              : 'text-danger'
+                          }
                         >
-                          {result.decision}
-                        </h2>
-                        <p className="text-muted-custom fw-semibold">
-                          Probability of Default :{' '}
-                          {(result.risk_probability * 100).toFixed(1)}%{' '}
-                          <br></br> Score:{' '}
-                          {((1 - result.risk_probability) * 100).toFixed(1)}/100
-                        </p>
-                      </Col>
-                      <Col md={7}>
-                        <h3 className="fw-bold text-slate mb-3">
-                          Final Decision
-                        </h3>
-                        <p className="text-muted-custom mb-4">
-                          Based on our ML analysis of your financial profile,
-                          your microloan application has been
-                          <strong
-                            className={
-                              result.decision === 'Approve'
-                                ? 'text-emerald'
-                                : 'text-danger'
-                            }
-                          >
-                            {' '}
-                            {result.decision.toLowerCase()}
-                          </strong>
-                          .
-                        </p>
+                          {' '}
+                          {String(finalDecision).toLowerCase()}
+                        </strong>
+                        .
+                      </p>
+
+                      {result.manual_decision ||
+                      (result.reviews && result.reviews.length > 0) ? (
+                        <div
+                          className="mt-4 p-3 rounded-4 border"
+                          style={{
+                            backgroundColor: '#f8fafc',
+                            borderColor: '#cbd5e1',
+                          }}
+                        >
+                          <h6 className="fw-bold d-flex align-items-center gap-2 mb-3 text-slate">
+                            <ShieldCheck size={18} color="#645cb4" /> Official
+                            Officer Review
+                          </h6>
+
+                          {result.reviews && result.reviews.length > 0 ? (
+                            <div className="d-flex align-items-start gap-3">
+                              <div
+                                className="d-flex align-items-center justify-content-center bg-white border rounded-circle flex-shrink-0"
+                                style={{ width: 48, height: 48 }}
+                              >
+                                <Users size={24} color="#475569" />
+                              </div>
+                              <div className="w-100">
+                                <div className="fw-bold fs-6 lh-1 mb-1">
+                                  Reviewed by Officer{' '}
+                                  <span className="text-primary">
+                                    {result.reviews
+                                      .map((r) => r.officer_name)
+                                      .join(', ')}
+                                  </span>
+                                </div>
+                                <div className="small text-muted mb-2">
+                                  Loan Officer Panel
+                                </div>
+
+                                <div className="mb-3 d-flex gap-2">
+                                  {(() => {
+                                    const approves = result.reviews.filter(
+                                      (r) => r.decision === 'Approve',
+                                    ).length;
+                                    const rejects = result.reviews.filter(
+                                      (r) => r.decision === 'Reject',
+                                    ).length;
+                                    const total = result.reviews.length;
+                                    const appPct = Math.round(
+                                      (approves / total) * 100,
+                                    );
+                                    const rejPct = Math.round(
+                                      (rejects / total) * 100,
+                                    );
+                                    return (
+                                      <>
+                                        {approves > 0 && (
+                                          <span
+                                            className="badge"
+                                            style={{
+                                              backgroundColor: '#3d9a6e',
+                                            }}
+                                          >
+                                            Approve({approves}) {appPct}%
+                                          </span>
+                                        )}
+                                        {rejects > 0 && (
+                                          <span className="badge bg-danger">
+                                            Reject({rejects}) {rejPct}%
+                                          </span>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+
+                                <div className="d-flex flex-column mt-3 border-top pt-3">
+                                  {result.reviews.map((r, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="mb-1 text-dark"
+                                      style={{ fontSize: '0.9rem' }}
+                                    >
+                                      <span className="fw-bold">
+                                        Officer {r.officer_name}:
+                                      </span>{' '}
+                                      <span className="fst-italic text-muted-custom">
+                                        "{r.justification}"
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="d-flex align-items-start gap-3">
+                              <img
+                                src={
+                                  result.officer_avatar ||
+                                  '/avatars/user_default_pfp_picture.jpg'
+                                }
+                                alt="Officer"
+                                style={{
+                                  width: 48,
+                                  height: 48,
+                                  borderRadius: '50%',
+                                  objectFit: 'cover',
+                                  border: '2px solid #e2e8f0',
+                                }}
+                              />
+                              <div>
+                                <div className="fw-bold fs-6 lh-1 mb-1">
+                                  {result.officer_name}
+                                </div>
+                                <div className="small text-muted mb-2">
+                                  Senior Loan Officer
+                                </div>
+                                <span
+                                  className={`badge ${result.manual_decision === 'Approve' ? 'bg-success' : 'bg-danger'} mb-2`}
+                                >
+                                  Status: {result.manual_decision}
+                                </span>
+                                <p className="small m-0 text-dark fst-italic">
+                                  "{result.officer_justification}"
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
                         <div className="bg-light p-4 rounded-4 border mt-3">
                           <p className="m-0 text-muted-custom fst-italic small">
-                            "Summary: {result.dynamic_explanation}"
+                            "Summary:{' '}
+                            {result.dynamic_explanation ||
+                              'Assessment complete.'}
+                            "
                           </p>
+                          <div className="text-end mt-2">
+                            <span className="badge bg-secondary bg-opacity-10 text-secondary border">
+                              Pending Human Review
+                            </span>
+                          </div>
                         </div>
-                      </Col>
-                    </Row>
-
-                    <Row className="mb-5">
-                      <Col xs={12}>
-                        <h4 className="fw-bold text-slate mb-3">
-                          Actionable Insights
-                        </h4>
-                        <p className="text-muted-custom small mb-4">
-                          Our Explainable AI analyzes the specific impact of
-                          your data. Review the highest risk factors below.
-                        </p>
-                        <Row>
-                          {result.recommendations &&
-                            result.recommendations.map((rec, index) => (
-                              <Col md={6} key={index}>
-                                <div
-                                  className={`p-3 rounded-3 mb-3 border-start border-4 shadow-sm h-100 ${rec.effect > 0 ? 'bg-danger bg-opacity-10 border-danger' : 'bg-success bg-opacity-10 border-success'}`}
-                                >
-                                  <strong className="d-block text-dark mb-1">
-                                    {rec.feature_name}
-                                  </strong>
-                                  <p className="mb-2 small text-muted-custom">
-                                    {rec.reason}
-                                  </p>
-                                  <div className="bg-white p-2 rounded border small">
-                                    <span className="fw-bold text-slate">
-                                      Action:{' '}
-                                    </span>
-                                    {rec.action}
-                                  </div>
+                      )}
+                    </Col>
+                  </Row>
+                  <Row className="mb-5">
+                    <Col xs={12}>
+                      <h4 className="fw-bold text-slate mb-3">
+                        Actionable Insights
+                      </h4>
+                      <Row>
+                        {result.recommendations &&
+                          result.recommendations.map((rec, index) => (
+                            <Col md={6} key={index}>
+                              <div
+                                className={`p-3 rounded-3 mb-3 border-start border-4 shadow-sm h-100 ${rec.effect > 0 ? 'bg-danger bg-opacity-10 border-danger' : 'bg-success bg-opacity-10 border-success'}`}
+                              >
+                                <strong className="d-block text-dark mb-1">
+                                  {rec.feature_name}
+                                </strong>
+                                <p className="mb-2 small text-muted-custom">
+                                  {rec.reason}
+                                </p>
+                                <div className="bg-white p-2 rounded border small">
+                                  <span className="fw-bold text-slate">
+                                    Action:{' '}
+                                  </span>
+                                  {rec.action}
                                 </div>
-                              </Col>
-                            ))}
-                        </Row>
-                      </Col>
-                    </Row>
-
+                              </div>
+                            </Col>
+                          ))}
+                      </Row>
+                    </Col>
+                  </Row>
+                  {result.shap_log && result.shap_log.length > 0 && (
                     <Row className="mt-5 pt-3">
                       <Col xs={12}>
                         <h4 className="fw-bold text-slate mb-3">
@@ -565,331 +517,664 @@ function App() {
                         <XaiChart data={result.shap_log} />
                       </Col>
                     </Row>
+                  )}
+                </div>
+              ) : (
+                <div className="custom-card p-4 p-md-5 slide-down">
+                  <div className="d-flex align-items-center mb-5 pb-3 border-bottom">
+                    <h3 className="fw-bold text-slate m-0">
+                      Submitted Application Data
+                    </h3>
+                    <span className="ms-auto badge bg-light text-dark border px-3 py-2">
+                      ID: AP{result.applicant_ic}
+                    </span>
                   </div>
-                ) : (
-                  /* =========================================
-                     TAB 2: FORM RECORD (Read-Only Form View)
-                     ========================================= */
-                  <div className="custom-card p-4 p-md-5 slide-down">
-                    <div className="d-flex align-items-center mb-5 pb-3 border-bottom">
-                      <h3 className="fw-bold text-slate m-0">
-                        Submitted Application Data
-                      </h3>
-                      <span className="ms-auto badge bg-light text-dark border px-3 py-2">
-                        ID: {result.applicant_ic}
-                      </span>
-                    </div>
 
-                    {(() => {
-                      const data = result.raw_features_log || {};
+                  {(() => {
+                    const data =
+                      result.raw_features_log || result.input_features || {};
+                    const formatMoney = (val) =>
+                      val
+                        ? new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                          }).format(val)
+                        : '-';
+                    const getAge = (days) =>
+                      days
+                        ? Math.floor(Math.abs(days) / 365.25) + ' years old'
+                        : '-';
 
-                      // Helper to safely format money
-                      const formatMoney = (val) =>
-                        val
-                          ? new Intl.NumberFormat('en-US', {
-                              style: 'currency',
-                              currency: 'USD',
-                            }).format(val)
-                          : '-';
-
-                      // Helper to calculate age from DAYS_BIRTH
-                      const getAge = (days) =>
-                        days
-                          ? Math.floor(Math.abs(days) / 365.25) + ' years old'
-                          : '-';
-
-                      // Helper to safely render the Read-Only Field
-                      const ReadOnlyField = ({ label, value }) => (
-                        <Col md={4} sm={6} className="mb-4">
-                          <div className="py-2 border-bottom border-light h-100">
-                            <div className="text-muted-custom small fw-semibold mb-2">
-                              {label}
-                            </div>
-                            <div className="fw-bold text-slate fs-6">
-                              {value !== null &&
-                              value !== '' &&
-                              value !== undefined
-                                ? value
-                                : '-'}
-                            </div>
+                    const ReadOnlyField = ({ label, value }) => (
+                      <Col md={4} sm={6} className="mb-4">
+                        <div className="py-2 border-bottom border-light h-100">
+                          <div className="text-muted-custom small fw-semibold mb-2">
+                            {label}
                           </div>
-                        </Col>
-                      );
-
-                      // NEW: Helper to render matching Section Headers
-                      const SectionHeader = ({ number, title }) => (
-                        <div className="d-flex align-items-center mb-4 mt-5">
-                          <div
-                            className="step-circle me-3"
-                            style={{
-                              width: '35px',
-                              height: '35px',
-                              fontSize: '1rem',
-                              minWidth: '35px',
-                            }}
-                          >
-                            {number}
+                          <div className="fw-bold text-slate fs-6">
+                            {value !== null &&
+                            value !== '' &&
+                            value !== undefined
+                              ? value
+                              : '-'}
                           </div>
-                          <h4 className="fw-bold text-slate m-0 fs-5">
-                            {title}
-                          </h4>
                         </div>
-                      );
+                      </Col>
+                    );
 
-                      // Helper to figure out contact methods
-                      const getContacts = () => {
-                        const contacts = [];
-                        if (String(data.FLAG_EMAIL) === '1')
-                          contacts.push('Email');
-                        if (String(data.FLAG_MOBIL) === '1')
-                          contacts.push('Mobile');
-                        if (String(data.FLAG_EMP_PHONE) === '1')
-                          contacts.push('Employer');
-                        if (String(data.FLAG_WORK_PHONE) === '1')
-                          contacts.push('Work');
-                        if (String(data.FLAG_PHONE) === '1')
-                          contacts.push('Home');
-                        return contacts.length > 0
-                          ? contacts.join(', ')
-                          : 'None Provided';
-                      };
+                    const SectionHeader = ({ number, title }) => (
+                      <div className="d-flex align-items-center mb-4 mt-5">
+                        <div
+                          className="step-circle me-3"
+                          style={{
+                            width: '35px',
+                            height: '35px',
+                            fontSize: '1rem',
+                            minWidth: '35px',
+                          }}
+                        >
+                          {number}
+                        </div>
+                        <h4 className="fw-bold text-slate m-0 fs-5">{title}</h4>
+                      </div>
+                    );
 
-                      // --- Helper to format Geographic Declarations for Applicants ---
-                      const getGeoDeclarations = () => {
-                        const diffs = [];
-                        // Using "different" or descriptive phrases for better UX
-                        if (String(data.REG_CITY_NOT_LIVE_CITY) === '1')
-                          diffs.push('Permanent & Contact City are different');
-                        if (String(data.REG_CITY_NOT_WORK_CITY) === '1')
-                          diffs.push('Permanent & Work City are different');
-                        if (String(data.REG_REGION_NOT_LIVE_REGION) === '1')
-                          diffs.push(
-                            'Permanent & Contact Region are different',
-                          );
-                        if (String(data.REG_REGION_NOT_WORK_REGION) === '1')
-                          diffs.push('Permanent & Work Region are different');
-                        if (String(data.LIVE_CITY_NOT_WORK_CITY) === '1')
-                          diffs.push('Contact & Work City are different');
-                        if (String(data.LIVE_REGION_NOT_WORK_REGION) === '1')
-                          diffs.push('Contact & Work Region are different');
+                    const getContacts = () => {
+                      const contacts = [];
+                      if (String(data.FLAG_EMAIL) === '1')
+                        contacts.push('Email');
+                      if (String(data.FLAG_MOBIL) === '1')
+                        contacts.push('Mobile');
+                      if (String(data.FLAG_EMP_PHONE) === '1')
+                        contacts.push('Employer');
+                      if (String(data.FLAG_WORK_PHONE) === '1')
+                        contacts.push('Work');
+                      if (String(data.FLAG_PHONE) === '1')
+                        contacts.push('Home');
+                      return contacts.length > 0
+                        ? contacts.join(', ')
+                        : 'None Provided';
+                    };
 
-                        if (diffs.length === 0) {
-                          return (
-                            <span className="text-emerald fw-medium">
-                              All addresses match
-                            </span>
-                          );
-                        }
+                    const getGeoDeclarations = () => {
+                      const diffs = [];
+                      if (String(data.REG_CITY_NOT_LIVE_CITY) === '1')
+                        diffs.push('Permanent & Contact City are different');
+                      if (String(data.REG_CITY_NOT_WORK_CITY) === '1')
+                        diffs.push('Permanent & Work City are different');
+                      if (String(data.REG_REGION_NOT_LIVE_REGION) === '1')
+                        diffs.push('Permanent & Contact Region are different');
+                      if (String(data.REG_REGION_NOT_WORK_REGION) === '1')
+                        diffs.push('Permanent & Work Region are different');
+                      if (String(data.LIVE_CITY_NOT_WORK_CITY) === '1')
+                        diffs.push('Contact & Work City are different');
+                      if (String(data.LIVE_REGION_NOT_WORK_REGION) === '1')
+                        diffs.push('Contact & Work Region are different');
 
+                      if (diffs.length === 0)
                         return (
-                          <div className="d-flex flex-column gap-1 pt-1">
-                            {diffs.map((diff, i) => (
-                              <span
-                                key={i}
-                                className="badge bg-light text-dark border fw-medium text-start text-wrap lh-base py-1 px-2"
-                                style={{ fontSize: '0.8rem' }}
-                              >
-                                • {diff}
-                              </span>
-                            ))}
-                          </div>
+                          <span className="text-emerald fw-medium">
+                            All addresses match
+                          </span>
                         );
-                      };
 
                       return (
-                        <div className="read-only-form">
-                          {/* --- PART 1 --- */}
-                          <div style={{ marginTop: '-1.5rem' }}>
-                            <SectionHeader
-                              number="1"
-                              title="Personal Demographics"
-                            />
-                          </div>
-                          <Row className="mb-2 g-3">
-                            <ReadOnlyField
-                              label="What is your gender?"
-                              value={
-                                data.CODE_GENDER === 1 ||
-                                data.CODE_GENDER === 'M'
-                                  ? 'Male'
-                                  : data.CODE_GENDER === 0 ||
-                                      data.CODE_GENDER === 'F'
-                                    ? 'Female'
-                                    : 'Unknown'
-                              }
-                            />
-                            <ReadOnlyField
-                              label="Calculated Age"
-                              value={getAge(data.DAYS_BIRTH)}
-                            />
-                            <ReadOnlyField
-                              label="Current marital status?"
-                              value={data.NAME_FAMILY_STATUS}
-                            />
-                            <ReadOnlyField
-                              label="Highest level of education?"
-                              value={data.NAME_EDUCATION_TYPE}
-                            />
-                            <ReadOnlyField
-                              label="Total children do you have?"
-                              value={data.CNT_CHILDREN}
-                            />
-                            <ReadOnlyField
-                              label="Total members in household?"
-                              value={data.CNT_FAM_MEMBERS}
-                            />
-                          </Row>
-
-                          {/* --- PART 2 --- */}
-                          <SectionHeader number="2" title="Contact & Assets" />
-                          <Row className="mb-2 g-3">
-                            <ReadOnlyField
-                              label="Do you own a car?"
-                              value={data.FLAG_OWN_CAR === 'Y' ? 'Yes' : 'No'}
-                            />
-                            <ReadOnlyField
-                              label="Car age (years)?"
-                              value={data.OWN_CAR_AGE || '0'}
-                            />
-                            <ReadOnlyField
-                              label="Do you own real estate?"
-                              value={
-                                data.FLAG_OWN_REALTY === 'Y' ? 'Yes' : 'No'
-                              }
-                            />
-                            <ReadOnlyField
-                              label="Months since phone change?"
-                              value={
-                                data.DAYS_LAST_PHONE_CHANGE
-                                  ? Math.abs(data.DAYS_LAST_PHONE_CHANGE)
-                                  : '0'
-                              }
-                            />
-                            <ReadOnlyField
-                              label="Provided Contact Methods"
-                              value={getContacts()}
-                            />
-                          </Row>
-
-                          {/* --- PART 3 --- */}
-                          <SectionHeader
-                            number="3"
-                            title="Housing & Geography"
-                          />
-                          <Row className="mb-2 g-3">
-                            <ReadOnlyField
-                              label="Living situation?"
-                              value={data.NAME_HOUSING_TYPE}
-                            />
-                            <ReadOnlyField
-                              label="Building type?"
-                              value={data.HOUSETYPE_MODE}
-                            />
-                            <ReadOnlyField
-                              label="Building wall material?"
-                              value={
-                                Array.isArray(data.WALLSMATERIAL_MODE)
-                                  ? data.WALLSMATERIAL_MODE.join(', ')
-                                  : data.WALLSMATERIAL_MODE
-                              }
-                            />
-                            <ReadOnlyField
-                              label="Maintenance fund structure?"
-                              value={data.FONDKAPREMONT_MODE}
-                            />
-                            <ReadOnlyField
-                              label="Emergency state?"
-                              value={data.EMERGENCYSTATE_MODE}
-                            />
-
-                            <ReadOnlyField
-                              label="Address Check Results"
-                              value={getGeoDeclarations()}
-                            />
-                          </Row>
-
-                          {/* --- PART 4 --- */}
-                          <SectionHeader
-                            number="4"
-                            title="Employment & Income"
-                          />
-                          <Row className="mb-2 g-3">
-                            <ReadOnlyField
-                              label="Primary source of income?"
-                              value={data.NAME_INCOME_TYPE}
-                            />
-                            <ReadOnlyField
-                              label="Total annual income?"
-                              value={formatMoney(data.AMT_INCOME_TOTAL)}
-                            />
-                            <ReadOnlyField
-                              label="Years at current job?"
-                              value={
-                                data.DAYS_EMPLOYED === 365243
-                                  ? 'N/A (Pensioner/Unemployed)'
-                                  : getAge(data.DAYS_EMPLOYED).replace(
-                                      ' old',
-                                      '',
-                                    )
-                              }
-                            />
-                            <ReadOnlyField
-                              label="Job Title / Occupation (Search)?"
-                              value={data.OCCUPATION_TYPE || 'Not Specified'}
-                            />
-                            <ReadOnlyField
-                              label="Industry / Organization Type (Search)?"
-                              value={data.ORGANIZATION_TYPE}
-                            />
-                          </Row>
-
-                          {/* --- PART 5 --- */}
-                          <SectionHeader number="5" title="Loan Details" />
-                          <Row className="mb-2 g-3">
-                            <ReadOnlyField
-                              label="Loan Type?"
-                              value={data.NAME_CONTRACT_TYPE}
-                            />
-                            <ReadOnlyField
-                              label="Requested borrow amount?"
-                              value={formatMoney(data.AMT_CREDIT)}
-                            />
-                            <ReadOnlyField
-                              label="Preferred yearly repayment?"
-                              value={formatMoney(data.AMT_ANNUITY)}
-                            />
-                            <ReadOnlyField
-                              label="Specific item price?"
-                              value={formatMoney(data.AMT_GOODS_PRICE)}
-                            />
-                          </Row>
-
-                          {/* --- PART 6 --- */}
-                          <SectionHeader
-                            number="6"
-                            title="Final Declarations (Social Risk)"
-                          />
-                          <Row className="mb-2 g-3">
-                            <ReadOnlyField
-                              label="Social circle past due (30 days)?"
-                              value={data.OBS_30_CNT_SOCIAL_CIRCLE}
-                            />
-                            <ReadOnlyField
-                              label="Social circle defaulted (30 days)?"
-                              value={data.DEF_30_CNT_SOCIAL_CIRCLE}
-                            />
-                            <ReadOnlyField
-                              label="Social circle defaulted (60 days)?"
-                              value={data.DEF_60_CNT_SOCIAL_CIRCLE}
-                            />
-                          </Row>
+                        <div className="d-flex flex-column gap-1 pt-1">
+                          {diffs.map((diff, i) => (
+                            <span
+                              key={i}
+                              className="badge bg-light text-dark border fw-medium text-start text-wrap lh-base py-1 px-2"
+                              style={{ fontSize: '0.8rem' }}
+                            >
+                              • {diff}
+                            </span>
+                          ))}
                         </div>
                       );
-                    })()}
-                  </div>
-                )}
+                    };
+
+                    return (
+                      <div className="read-only-form">
+                        <div style={{ marginTop: '-1.5rem' }}>
+                          <SectionHeader
+                            number="1"
+                            title="Personal Demographics"
+                          />
+                        </div>
+                        <Row className="mb-2 g-3">
+                          <ReadOnlyField
+                            label="What is your gender?"
+                            value={
+                              data.CODE_GENDER === 1 || data.CODE_GENDER === 'M'
+                                ? 'Male'
+                                : data.CODE_GENDER === 0 ||
+                                    data.CODE_GENDER === 'F'
+                                  ? 'Female'
+                                  : 'Unknown'
+                            }
+                          />
+                          <ReadOnlyField
+                            label="Calculated Age"
+                            value={getAge(data.DAYS_BIRTH)}
+                          />
+                          <ReadOnlyField
+                            label="Current marital status?"
+                            value={data.NAME_FAMILY_STATUS}
+                          />
+                          <ReadOnlyField
+                            label="Highest level of education?"
+                            value={data.NAME_EDUCATION_TYPE}
+                          />
+                          <ReadOnlyField
+                            label="Total children do you have?"
+                            value={data.CNT_CHILDREN}
+                          />
+                          <ReadOnlyField
+                            label="Total members in household?"
+                            value={data.CNT_FAM_MEMBERS}
+                          />
+                        </Row>
+
+                        <SectionHeader number="2" title="Contact & Assets" />
+                        <Row className="mb-2 g-3">
+                          <ReadOnlyField
+                            label="Do you own a car?"
+                            value={data.FLAG_OWN_CAR === 'Y' ? 'Yes' : 'No'}
+                          />
+                          <ReadOnlyField
+                            label="Car age (years)?"
+                            value={data.OWN_CAR_AGE || '0'}
+                          />
+                          <ReadOnlyField
+                            label="Do you own real estate?"
+                            value={data.FLAG_OWN_REALTY === 'Y' ? 'Yes' : 'No'}
+                          />
+                          <ReadOnlyField
+                            label="Months since phone change?"
+                            value={
+                              data.DAYS_LAST_PHONE_CHANGE
+                                ? Math.abs(data.DAYS_LAST_PHONE_CHANGE)
+                                : '0'
+                            }
+                          />
+                          <ReadOnlyField
+                            label="Provided Contact Methods"
+                            value={getContacts()}
+                          />
+                        </Row>
+
+                        <SectionHeader number="3" title="Housing & Geography" />
+                        <Row className="mb-2 g-3">
+                          <ReadOnlyField
+                            label="Living situation?"
+                            value={data.NAME_HOUSING_TYPE}
+                          />
+                          <ReadOnlyField
+                            label="Building type?"
+                            value={data.HOUSETYPE_MODE}
+                          />
+                          <ReadOnlyField
+                            label="Building wall material?"
+                            value={
+                              Array.isArray(data.WALLSMATERIAL_MODE)
+                                ? data.WALLSMATERIAL_MODE.join(', ')
+                                : data.WALLSMATERIAL_MODE
+                            }
+                          />
+                          <ReadOnlyField
+                            label="Maintenance fund structure?"
+                            value={data.FONDKAPREMONT_MODE}
+                          />
+                          <ReadOnlyField
+                            label="Emergency state?"
+                            value={data.EMERGENCYSTATE_MODE}
+                          />
+                          <ReadOnlyField
+                            label="Address Check Results"
+                            value={getGeoDeclarations()}
+                          />
+                        </Row>
+
+                        <SectionHeader number="4" title="Employment & Income" />
+                        <Row className="mb-2 g-3">
+                          <ReadOnlyField
+                            label="Primary source of income?"
+                            value={data.NAME_INCOME_TYPE}
+                          />
+                          <ReadOnlyField
+                            label="Total annual income?"
+                            value={formatMoney(data.AMT_INCOME_TOTAL)}
+                          />
+                          <ReadOnlyField
+                            label="Years at current job?"
+                            value={
+                              data.DAYS_EMPLOYED === 365243
+                                ? 'N/A (Pensioner/Unemployed)'
+                                : getAge(data.DAYS_EMPLOYED).replace(' old', '')
+                            }
+                          />
+                          <ReadOnlyField
+                            label="Job Title / Occupation (Search)?"
+                            value={data.OCCUPATION_TYPE || 'Not Specified'}
+                          />
+                          <ReadOnlyField
+                            label="Industry / Organization Type (Search)?"
+                            value={data.ORGANIZATION_TYPE}
+                          />
+                        </Row>
+
+                        <SectionHeader number="5" title="Loan Details" />
+                        <Row className="mb-2 g-3">
+                          <ReadOnlyField
+                            label="Loan Type?"
+                            value={data.NAME_CONTRACT_TYPE}
+                          />
+                          <ReadOnlyField
+                            label="Requested borrow amount?"
+                            value={formatMoney(data.AMT_CREDIT)}
+                          />
+                          <ReadOnlyField
+                            label="Preferred yearly repayment?"
+                            value={formatMoney(data.AMT_ANNUITY)}
+                          />
+                          <ReadOnlyField
+                            label="Specific item price?"
+                            value={formatMoney(data.AMT_GOODS_PRICE)}
+                          />
+                        </Row>
+
+                        <SectionHeader
+                          number="6"
+                          title="Final Declarations (Social Risk)"
+                        />
+                        <Row className="mb-2 g-3">
+                          <ReadOnlyField
+                            label="Social circle past due (30 days)?"
+                            value={data.OBS_30_CNT_SOCIAL_CIRCLE}
+                          />
+                          <ReadOnlyField
+                            label="Social circle defaulted (30 days)?"
+                            value={data.DEF_30_CNT_SOCIAL_CIRCLE}
+                          />
+                          <ReadOnlyField
+                            label="Social circle defaulted (60 days)?"
+                            value={data.DEF_60_CNT_SOCIAL_CIRCLE}
+                          />
+                        </Row>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          )
+        )}
+      </div>
+    );
+  };
+
+  // --- NEW: Applicant History Pagination Logic ---
+  const indexOfLastHistory = historyPage * historyPerPage;
+  const indexOfFirstHistory = indexOfLastHistory - historyPerPage;
+  const currentHistory = history.slice(indexOfFirstHistory, indexOfLastHistory);
+  const totalHistoryPages = Math.ceil(history.length / historyPerPage);
+
+  return (
+    <Container className="py-4" style={{ maxWidth: '1000px' }}>
+      <style>{`.btn-animated{transition:transform .15s ease, box-shadow .15s ease;} .btn-animated:hover{transform:translateY(-3px) scale(1.02); box-shadow:0 8px 28px rgba(15,23,42,0.06);} .record-detail-btn{transition: color .12s ease, transform .12s ease;} .record-detail-btn:hover{transform:translateX(6px);}`}</style>
+
+      {(currentView === 'home' || user.role === 'loan_officer') && (
+        <div className="app-header mb-4 slide-down d-flex align-items-center position-relative">
+          <div className="brand-logo" style={{ width: '250px' }}>
+            <div className="brand-logo-mark">C</div>
+            <div>
+              <p className="brand-name">Credify</p>
+              <p className="brand-tagline">Microloan Credit Scoring Platform</p>
+            </div>
+          </div>
+
+          <div className="position-absolute start-50 translate-middle-x">
+            <div
+              className="p-1 rounded-pill d-inline-flex"
+              style={{
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              {user.role === 'loan_officer' ? (
+                <button
+                  className="border-0 shadow-sm"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a',
+                    fontWeight: '600',
+                    borderRadius: '50rem',
+                    padding: '6px 18px',
+                  }}
+                  onClick={() => {
+                    setHomeTab('dashboard');
+                    setCurrentView('home');
+                  }}
+                >
+                  Workspace
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="border-0"
+                    style={{
+                      backgroundColor:
+                        homeTab === 'apply' ? '#ffffff' : 'transparent',
+                      color: homeTab === 'apply' ? '#0f172a' : '#64748b',
+                      fontWeight: '600',
+                      borderRadius: '50rem',
+                      padding: '6px 18px',
+                      boxShadow:
+                        homeTab === 'apply'
+                          ? '0 1px 3px rgba(0,0,0,0.1)'
+                          : 'none',
+                      transition: 'all 0.2s ease-in-out',
+                    }}
+                    onClick={() => {
+                      setHomeTab('apply');
+                      setCurrentView('home');
+                    }}
+                  >
+                    Apply
+                  </button>
+                  <button
+                    className="border-0"
+                    style={{
+                      backgroundColor:
+                        homeTab === 'record' ? '#ffffff' : 'transparent',
+                      color: homeTab === 'record' ? '#0f172a' : '#64748b',
+                      fontWeight: '600',
+                      borderRadius: '50rem',
+                      padding: '6px 18px',
+                      boxShadow:
+                        homeTab === 'record'
+                          ? '0 1px 3px rgba(0,0,0,0.1)'
+                          : 'none',
+                      transition: 'all 0.2s ease-in-out',
+                    }}
+                    onClick={() => {
+                      setHomeTab('record');
+                      setCurrentView('home');
+                    }}
+                  >
+                    Record
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div
+            className="d-flex align-items-center gap-3 ms-auto"
+            style={{ width: '250px', justifyContent: 'flex-end' }}
+          >
+            <div
+              className="d-flex align-items-center gap-2"
+              style={{ cursor: 'pointer' }}
+              onClick={() => {
+                setHomeTab('profile');
+                setCurrentView('home');
+              }}
+            >
+              <div className="d-none d-sm-block text-end">
+                <div className="fw-bold lh-1" style={{ fontSize: '0.85rem' }}>
+                  {user.name}
+                </div>
+                <div
+                  className="text-muted-custom"
+                  style={{ fontSize: '0.7rem', textTransform: 'capitalize' }}
+                >
+                  {user.role ? user.role.replace('_', ' ') : ''}
+                </div>
               </div>
+              <img
+                src={
+                  user.profile_picture_url ||
+                  '/avatars/user_default_pfp_picture.jpg'
+                }
+                alt="Profile"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '2px solid #e2e8f0',
+                }}
+              />
+            </div>
+            <button
+              onClick={handleLogout}
+              className="btn btn-light border d-flex align-items-center justify-content-center"
+              style={{
+                width: '36px',
+                height: '36px',
+                padding: '0',
+                borderRadius: '8px',
+              }}
+              title="Logout"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {currentView === 'result' ? (
+        renderResultView()
+      ) : currentView === 'form' ? (
+        <CreditForm
+          onSubmit={handleFormSubmit}
+          onCancel={() => setCurrentView('home')}
+        />
+      ) : (
+        <div className="fade-in">
+          {user.role === 'loan_officer' ? (
+            homeTab === 'profile' ? (
+              <Profile />
+            ) : (
+              <OfficerDashboard onViewDetails={handleViewOfficerDetail} />
             )
+          ) : (
+            <>
+              {homeTab === 'profile' ? (
+                <Profile />
+              ) : homeTab === 'apply' ? (
+                <div className="fade-in">
+                  <div className="home-hero mb-4 slide-down">
+                    <div className="hero-eyebrow">
+                      <Sparkles size={12} /> Applicant Dashboard
+                    </div>
+                    <h2 className="hero-title">
+                      Ready to start your assessment?
+                    </h2>
+                    <p className="hero-description mx-auto">
+                      Fill out our secure, streamlined application form. Our
+                      Explainable AI will analyze your financial profile and
+                      provide a transparent decision in seconds.
+                    </p>
+                    <div className="mt-4">
+                      <button
+                        className="btn btn-cta"
+                        onClick={() => setCurrentView('form')}
+                      >
+                        Start Application <ArrowRight size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="fade-in">
+                  <div className="mb-5 d-flex gap-2">
+                    <div className="position-relative flex-grow-1">
+                      <Search
+                        className="position-absolute text-muted-custom"
+                        style={{ left: '16px', top: '16px' }}
+                        size={20}
+                      />
+                      <Form.Control
+                        type="text"
+                        placeholder="Enter ID to Search History Record..."
+                        className="custom-input ps-5"
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          if (searchError) setSearchError('');
+                        }}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                      />
+                    </div>
+                    <button
+                      className={`btn btn-dark-custom btn-animated ${!searchQuery ? 'disabled' : ''}`}
+                      onClick={() => handleSearch()}
+                      disabled={!searchQuery}
+                    >
+                      Search Record
+                    </button>
+                  </div>
+                  {searchError && (
+                    <Alert variant="warning" className="mb-3">
+                      {searchError}
+                    </Alert>
+                  )}
+                  <h5 className="fw-bold text-slate mb-3">Past Records</h5>
+
+                  {/* MAP OVER currentHistory INSTEAD OF history */}
+                  {currentHistory.map((record, index) => {
+                    const ic =
+                      record.applicant_ic ||
+                      record.raw_features_log?.applicant_ic ||
+                      'Unknown';
+                    const gender =
+                      record.CODE_GENDER ??
+                      record.raw_features_log?.CODE_GENDER;
+                    const income =
+                      record.AMT_INCOME_TOTAL ??
+                      record.raw_features_log?.AMT_INCOME_TOTAL;
+                    const daysBirth =
+                      record.DAYS_BIRTH ?? record.raw_features_log?.DAYS_BIRTH;
+                    const ageYears = daysBirth
+                      ? Math.floor(Math.abs(daysBirth) / 365.25)
+                      : 'N/A';
+
+                    return (
+                      <div
+                        key={record.id || index}
+                        className="record-card bg-white p-4 mb-3"
+                      >
+                        <div className="d-flex justify-content-between mb-3">
+                          <div className="d-flex gap-3 align-items-center">
+                            <span className="badge bg-light text-dark border p-2">
+                              ID: AP{ic}
+                            </span>
+                            <span
+                              className={`badge ${record.decision === 'Approve' ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${record.decision === 'Approve' ? 'text-success' : 'text-danger'} p-2 px-3`}
+                            >
+                              Model: {record.decision}
+                            </span>
+
+                            {record.manual_decision && (
+                              <span
+                                className={`badge ${record.manual_decision === 'Approve' ? 'bg-success' : 'bg-danger'} text-white p-2 px-3 shadow-sm`}
+                              >
+                                Officer: {record.manual_decision}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-muted-custom small">
+                            {record.application_date
+                              ? new Date(
+                                  record.application_date,
+                                ).toLocaleString()
+                              : 'Just now'}
+                          </span>
+                        </div>
+                        <Row className="align-items-center">
+                          <Col
+                            xs={3}
+                            className="text-muted-custom small d-flex align-items-center gap-2"
+                          >
+                            <User size={16} />{' '}
+                            {gender === 0 || gender === 'F' ? 'Female' : 'Male'}
+                          </Col>
+                          <Col
+                            xs={3}
+                            className="text-muted-custom small d-flex align-items-center gap-2"
+                          >
+                            <Calendar size={16} /> {ageYears} Years Old
+                          </Col>
+                          <Col
+                            xs={3}
+                            className="text-muted-custom small d-flex align-items-center gap-2"
+                          >
+                            <DollarSign size={16} />{' '}
+                            {income !== undefined && income !== null
+                              ? `$${income.toLocaleString()}`
+                              : 'N/A'}
+                          </Col>
+                          <Col xs={3} className="text-end">
+                            <button
+                              className="btn btn-link p-0 small text-emerald fw-bold d-inline-flex align-items-center record-detail-btn"
+                              onClick={() => {
+                                setResult(record);
+                                setCurrentView('result');
+                              }}
+                            >
+                              Click for Details <ArrowRight size={14} />
+                            </button>
+                          </Col>
+                        </Row>
+                      </div>
+                    );
+                  })}
+
+                  {/* --- NEW: Applicant Pagination UI --- */}
+                  {totalHistoryPages > 1 && (
+                    <div className="d-flex justify-content-center mt-4 mb-2">
+                      <ul className="pagination pagination-sm shadow-sm m-0">
+                        <li
+                          className={`page-item ${historyPage === 1 ? 'disabled' : ''}`}
+                        >
+                          <button
+                            className="page-link text-success"
+                            onClick={() => setHistoryPage(historyPage - 1)}
+                          >
+                            Prev
+                          </button>
+                        </li>
+                        {[...Array(totalHistoryPages)].map((_, i) => (
+                          <li
+                            key={i}
+                            className={`page-item ${historyPage === i + 1 ? 'active' : ''}`}
+                          >
+                            <button
+                              className={`page-link ${historyPage === i + 1 ? 'bg-success border-success text-white' : 'text-success'}`}
+                              onClick={() => setHistoryPage(i + 1)}
+                            >
+                              {i + 1}
+                            </button>
+                          </li>
+                        ))}
+                        <li
+                          className={`page-item ${historyPage === totalHistoryPages ? 'disabled' : ''}`}
+                        >
+                          <button
+                            className="page-link text-success"
+                            onClick={() => setHistoryPage(historyPage + 1)}
+                          >
+                            Next
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

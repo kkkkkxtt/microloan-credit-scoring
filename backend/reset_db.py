@@ -1,10 +1,18 @@
 from app.db.database import engine, Base
-from app.db.models import ApplicationRecord # Make sure this matches your actual import path!
+from app.db import models
+from sqlalchemy import text
 
-print("Dropping old tables...")
-Base.metadata.drop_all(bind=engine)
+print("Force dropping all old tables...")
 
-print("Building new tables...")
+# Connect to Postgres and force drop everything using CASCADE
+with engine.connect() as conn:
+    conn.execute(text("DROP SCHEMA public CASCADE;"))
+    conn.execute(text("CREATE SCHEMA public;"))
+    
+    # In newer SQLAlchemy versions, you need to explicitly commit raw SQL
+    conn.commit()
+
+print("Creating new tables with updated schema...")
 Base.metadata.create_all(bind=engine)
 
-print("Database reset successfully! You are ready to test.")
+print("Database reset successfully!")
