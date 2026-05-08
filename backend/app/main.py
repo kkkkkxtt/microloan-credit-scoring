@@ -97,19 +97,24 @@ with open(DICT_PATH, 'r') as f:
     xai_dictionary = json.load(f)
 
 @app.get("/history/{ic}")
-async def get_applicant_history(ic: str, db: Session = Depends(get_db)):
+async def get_applicant_history(ic: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
-        records = db.query(ApplicationRecord).filter(ApplicationRecord.application_id == ic).order_by(ApplicationRecord.application_created_at.desc()).all()
+        query = db.query(ApplicationRecord).filter(ApplicationRecord.application_id == ic)
+        
+        # --- STRICT SECURITY ENFORCEMENT ---
+        # If the user is an applicant, forcefully restrict the query to their own user_id
+        if current_user.user_role == "applicant":
+            query = query.filter(ApplicationRecord.applicant_user_id == current_user.user_id)
+            
+        records = query.order_by(ApplicationRecord.application_created_at.desc()).all()
         if not records: return []
             
         history = []
         dict_keys_sorted = sorted(xai_dictionary.keys(), key=len, reverse=True)
         
         for row in records:
-
             features = row.input_features or {}
             shap_log = row.shap_explanations or []
-            
             rebuilt_recommendations = []
 
             try:
@@ -117,11 +122,84 @@ async def get_applicant_history(ic: str, db: Session = Depends(get_db)):
             except:
                 parsed_reviews = []
 
+            for item in shap_log[:4]: 
+                raw_feature = item.get("feature", "")
+                
+                dict_key = raw_feature
+                if dict_key not in xai_dictionary:
+                    for key in dict_keys_sorted:
+                        if raw_feature.startswith(key):
+                            dict_key = key
+                            break
+                            
+                translation = xai_dictionary.get(dict_key, {
+                    "display_name": raw_feature.replace('_', ' ').title(),
+                    "reason": "This specific metric deviated from standard safety thresholds.",
+                    "action": "Discuss this metric with a verified loan officer."
+                })
+                
+                rebuilt_recommendations.append({
+                    "feature_name": translation["display_name"],
+                    "reason": translation["reason"],
+                    "action": translation["action"],
+                    "effect": item.get("effect", 0)
+                })
+            
+            top_risk = rebuilt_recommendations[0]['feature_name'] if rebuilt_recommendations else 'AI Risk Assessment'
+            
+            history.append({
+                "id": row.application_record_id,
+                "applicant_ic": row.application_id,
+                "application_date": row.application_created_at.isoformat(),
+                "risk_probability": float(row.model_probability),
+                "decision": row.model_decision,
+                "manual_decision": row.manual_decision,
+                "officer_justification": row.officer_justification,
+                "officer_name": row.officer.username if row.officer else None,
+                "officer_avatar": row.officer.user_avatar_url if row.officer else None,
+                "reviews": parsed_reviews,
+                "CODE_GENDER": features.get("CODE_GENDER", 1),
+                "DAYS_EMPLOYED": features.get("DAYS_EMPLOYED", 0),
+                "AMT_INCOME_TOTAL": features.get("AMT_INCOME_TOTAL", 0),
+                "raw_features_log": features,
+                "shap_log": shap_log,
+                "recommendations": rebuilt_recommendations,
+                "dynamic_explanation": f"Historical decision based primarily on {top_risk}."
+            })
+        return history
+    except Exception as e:
+        print(f"History Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- NEW ENDPOINT: FETCH ALL MY HISTORY SECURELY ---
+@app.get("/history/me/all")
+async def get_my_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        if current_user.user_role != "applicant":
+            raise HTTPException(status_code=403, detail="Only applicants can fetch their history this way.")
+            
+        records = db.query(ApplicationRecord)\
+                    .filter(ApplicationRecord.applicant_user_id == current_user.user_id)\
+                    .order_by(ApplicationRecord.application_created_at.desc()).all()
+        
+        if not records: return []
+
+        history = []
+        dict_keys_sorted = sorted(xai_dictionary.keys(), key=len, reverse=True)
+        
+        for row in records:
+            features = row.input_features or {}
+            shap_log = row.shap_explanations or []
+            rebuilt_recommendations = []
+
+            try:
+                parsed_reviews = json.loads(row.officer_justification) if row.officer_justification and row.officer_justification.startswith("[") else []
+            except:
+                parsed_reviews = []
 
             for item in shap_log[:4]: 
                 raw_feature = item.get("feature", "")
                 
-                # BULLETPROOF MAPPING FOR HISTORY
                 dict_key = raw_feature
                 if dict_key not in xai_dictionary:
                     for key in dict_keys_sorted:

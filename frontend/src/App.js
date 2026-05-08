@@ -55,44 +55,25 @@ function App() {
     const fetchInitialHistory = async () => {
       if (homeTab === 'record' && user?.role === 'applicant') {
         setSearchQuery('');
-        setHistoryPage(1); // Reset page on tab load
+        setHistoryPage(1);
 
-        let cachedRecords = [];
-        const recentJson = localStorage.getItem('recent_records');
-        if (recentJson) {
-          try {
-            cachedRecords = JSON.parse(recentJson || '[]');
-            setHistory(cachedRecords); // Show instantly to prevent flickering
-          } catch (err) {}
-        }
-
-        // --- STRICT DATABASE SYNC ---
-        if (cachedRecords.length > 0) {
-          try {
-            const promises = cachedRecords.map((rec) => {
-              const ic = rec.applicant_ic || rec.raw_features_log?.applicant_ic;
-              return axios
-                .get(`http://127.0.0.1:8000/history/${ic}`)
-                .catch(() => null);
-            });
-
-            const responses = await Promise.all(promises);
-            const validRecords = [];
-
-            responses.forEach((res) => {
-              // ONLY keep the record if the database actually returns it
-              if (res && res.data && res.data.length > 0) {
-                validRecords.push(res.data[0]);
-              }
-            });
-            setHistory(validRecords);
+        try {
+          // --- SECURE & INSTANT SYNC ---
+          // Fetch all records belonging to this specific user directly from the database!
+          const response = await axios.get(
+            `http://127.0.0.1:8000/history/me/all`,
+          );
+          if (response.data) {
+            setHistory(response.data);
+            // Optionally update cache for faster subsequent loads
             localStorage.setItem(
               'recent_records',
-              JSON.stringify(validRecords.slice(0, 50)),
+              JSON.stringify(response.data.slice(0, 50)),
             );
-          } catch (err) {
-            console.error('Failed to sync history with database:', err);
           }
+        } catch (err) {
+          console.error('Failed to fetch user history:', err);
+          setHistory([]);
         }
       }
     };
@@ -103,7 +84,6 @@ function App() {
     setSearchError('');
     if (!icToSearch) return setSearchError('Please enter an ID to search.');
 
-    //Strip 'AP' or 'OWAP' prefixes from the search query so the DB can find it ---
     const cleanIc = String(icToSearch)
       .toUpperCase()
       .replace(/^(AP|OWAP|OWA)/, '')
@@ -115,13 +95,19 @@ function App() {
       );
       if (!response.data || response.data.length === 0) {
         setHistory([]);
-        return setSearchError('Record not exist');
+        // UPDATED MESSAGE
+        return setSearchError(
+          'Record does not exist or you do not have permission to view it.',
+        );
       }
       setHistory(response.data);
       setHistoryPage(1);
     } catch (err) {
       setHistory([]);
-      setSearchError('Record not exist');
+      // UPDATED MESSAGE
+      setSearchError(
+        'Record does not exist or you do not have permission to view it.',
+      );
     }
   };
 
