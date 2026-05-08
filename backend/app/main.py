@@ -57,17 +57,16 @@ async def get_latest_id(db: Session = Depends(get_db)):
         return {"latest_id": 100001}
 
 @app.post("/predict", response_model=PredictionResponse)
-async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
+async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
         result = process_prediction(request.root)
         
-        # Save to Database using SQLAlchemy ORM (No more raw SQL strings!)
-        # Notice we don't need json.dumps() anymore. SQLAlchemy handles JSONB automatically.
+        # Save to Database using the NEW column names from models.py
         new_record = ApplicationRecord(
-            user_id=current_user.user_id,
-            applicant_ic=result["applicant_ic"],
-            probability=result["risk_probability"],
-            decision=result["decision"],
+            applicant_user_id=current_user.user_id,       # <-- FIXED
+            application_id=result["applicant_ic"],        # <-- FIXED
+            model_probability=result["risk_probability"], # <-- FIXED
+            model_decision=result["decision"],            # <-- FIXED
             input_features=result["raw_features_log"],
             shap_explanations=result["shap_log"]
         )
@@ -76,14 +75,14 @@ async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db)
         db.commit()
         db.refresh(new_record)
 
-        # Attach DB-generated metadata to response (so frontend can store per-device history)
+        # Attach DB-generated metadata to response for the frontend
         result_to_return = dict(result) if isinstance(result, dict) else {}
         result_to_return.update({
-            'id': new_record.application_record_id,
+            'id': new_record.application_record_id,       # <-- FIXED
             'application_date': new_record.application_created_at.isoformat(),
-            'applicant_ic': new_record.application_id,
+            'applicant_ic': new_record.application_id,    # <-- FIXED
             'risk_probability': float(result.get('risk_probability', new_record.model_probability)),
-            'decision': new_record.model_decision,
+            'decision': new_record.model_decision,        # <-- FIXED
         })
 
         return result_to_return
