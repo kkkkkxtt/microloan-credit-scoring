@@ -53,11 +53,13 @@ def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
     # 1. Find user by email
     user = db.query(User).filter(User.email == user_data.email).first()
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        # UX Improvement: Explicitly state the email is not registered
+        raise HTTPException(status_code=401, detail="Unregistered email address")
 
     # 2. Verify password
     if not verify_password(user_data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        # UX Improvement: Explicitly state the password is wrong
+        raise HTTPException(status_code=401, detail="Wrong password")
 
     # 3. Generate JWT Token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

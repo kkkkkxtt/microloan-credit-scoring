@@ -32,6 +32,9 @@ function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
 
+  const [appToast, setAppToast] = useState(null);
+  const [hasGreeted, setHasGreeted] = useState(false);
+
   const [currentView, setCurrentView] = useState('home');
   const [homeTab, setHomeTab] = useState('apply');
   const [result, setResult] = useState(null);
@@ -48,8 +51,16 @@ function App() {
   useEffect(() => {
     if (user) {
       setShowAuth(false);
+      // Show success toast on login, but only once per session
+      if (!hasGreeted) {
+        setAppToast({ msg: `Welcome, ${user.name}!`, type: 'success' });
+        setTimeout(() => setAppToast(null), 3000);
+        setHasGreeted(true);
+      }
+    } else {
+      setHasGreeted(false); // Reset greeting when logged out
     }
-  }, [user]);
+  }, [user, hasGreeted]);
 
   useEffect(() => {
     const fetchInitialHistory = async () => {
@@ -82,7 +93,20 @@ function App() {
 
   const handleSearch = async (icToSearch = searchQuery) => {
     setSearchError('');
-    if (!icToSearch) return setSearchError('Please enter an ID to search.');
+
+    // NEW: If search bar is empty, automatically fetch all history!
+    if (!icToSearch || String(icToSearch).trim() === '') {
+      try {
+        const response = await axios.get(
+          `http://127.0.0.1:8000/history/me/all`,
+        );
+        setHistory(response.data || []);
+        setHistoryPage(1);
+      } catch (err) {
+        setHistory([]);
+      }
+      return;
+    }
 
     const cleanIc = String(icToSearch)
       .toUpperCase()
@@ -95,7 +119,6 @@ function App() {
       );
       if (!response.data || response.data.length === 0) {
         setHistory([]);
-        // UPDATED MESSAGE
         return setSearchError(
           'Record does not exist or you do not have permission to view it.',
         );
@@ -104,7 +127,6 @@ function App() {
       setHistoryPage(1);
     } catch (err) {
       setHistory([]);
-      // UPDATED MESSAGE
       setSearchError(
         'Record does not exist or you do not have permission to view it.',
       );
@@ -808,7 +830,33 @@ function App() {
   return (
     <Container className="py-4" style={{ maxWidth: '1000px' }}>
       <style>{`.btn-animated{transition:transform .15s ease, box-shadow .15s ease;} .btn-animated:hover{transform:translateY(-3px) scale(1.02); box-shadow:0 8px 28px rgba(15,23,42,0.06);} .record-detail-btn{transition: color .12s ease, transform .12s ease;} .record-detail-btn:hover{transform:translateX(6px);}`}</style>
-
+      {/* --- NEW: GLOBAL SUCCESS TOAST --- */}
+      {appToast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '30px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor:
+              appToast.type === 'success' ? '#3d9a6e' : '#f87171',
+            color: '#fff',
+            padding: '14px 28px',
+            borderRadius: '14px',
+            zIndex: 9999,
+            fontWeight: '600',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.95rem',
+            animation: 'fadeIn 0.3s ease',
+          }}
+        >
+          <ShieldCheck size={18} />
+          {appToast.msg}
+        </div>
+      )}
       {(currentView === 'home' || user.role === 'loan_officer') && (
         <div className="app-header mb-4 slide-down d-flex align-items-center position-relative">
           <div className="brand-logo" style={{ width: '250px' }}>
@@ -1008,8 +1056,13 @@ function App() {
                         className="custom-input ps-5"
                         value={searchQuery}
                         onChange={(e) => {
-                          setSearchQuery(e.target.value);
+                          const val = e.target.value;
+                          setSearchQuery(val);
                           if (searchError) setSearchError('');
+                          // Auto-fetch all if cleared
+                          if (val.trim() === '') {
+                            handleSearch('');
+                          }
                         }}
                         onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                       />

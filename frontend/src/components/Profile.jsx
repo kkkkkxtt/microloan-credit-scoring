@@ -1,12 +1,17 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
-import { CheckCircle, UserCircle } from 'lucide-react';
+import { CheckCircle, UserCircle, AlertTriangle } from 'lucide-react';
 
 const Profile = () => {
   const { user, setUser } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  // --- NEW: Unified Toast State ---
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, type) => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const initialCustom = user.profile_picture_url?.startsWith('data:image')
     ? user.profile_picture_url
@@ -55,7 +60,6 @@ const Profile = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setSuccessMsg('');
     try {
       const payload = {
         ...formData,
@@ -81,11 +85,14 @@ const Profile = () => {
       );
       setUser(response.data);
       localStorage.setItem('user', JSON.stringify(response.data));
-      setSuccessMsg('Profile updated successfully!');
-      setTimeout(() => setSuccessMsg(''), 3000);
+
+      // Show Success Pop-out
+      showToast('Profile updated successfully!', 'success');
     } catch (error) {
-      alert(
+      // Show Error Pop-out
+      showToast(
         'Failed to update profile. ' + (error.response?.data?.detail || ''),
+        'error',
       );
     }
     setLoading(false);
@@ -96,6 +103,38 @@ const Profile = () => {
       className="custom-card p-4 p-md-5 mx-auto slide-down"
       style={{ maxWidth: '800px', marginTop: '2vh' }}
     >
+      {/* --- NEW: OVERLAY POP-OUT TOAST --- */}
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '30px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: toast.type === 'success' ? '#3d9a6e' : '#f87171',
+            color: '#fff',
+            padding: '14px 28px',
+            borderRadius: '14px',
+            zIndex: 9999,
+            fontWeight: '600',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.95rem',
+            animation: 'fadeIn 0.3s ease',
+          }}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle size={18} />
+          ) : (
+            <AlertTriangle size={18} />
+          )}
+          {toast.msg}
+        </div>
+      )}
+      {/* --------------------------------- */}
+
       <div className="d-flex align-items-center mb-4 pb-3 border-bottom">
         <div
           style={{
@@ -109,7 +148,7 @@ const Profile = () => {
             marginRight: '1rem',
           }}
         >
-          <UserCircle size={24} color="#0284c7" />
+          <UserCircle size={24} color="#57acd6" />
         </div>
         <div className="text-start">
           <h4 className="fw-bold m-0" style={{ fontFamily: 'Fraunces, serif' }}>
@@ -120,12 +159,6 @@ const Profile = () => {
           </p>
         </div>
       </div>
-
-      {successMsg && (
-        <div className="alert alert-success d-flex align-items-center gap-2 py-2 px-3 small rounded-3 mb-4">
-          <CheckCircle size={18} /> {successMsg}
-        </div>
-      )}
 
       <form onSubmit={handleSave}>
         <div className="row">
