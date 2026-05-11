@@ -552,3 +552,82 @@ input[type='date'].is-invalid::-webkit-calendar-picker-indicator {
   z-index: 100;
   transition: all 0.3s ease;
 }
+
+/* =========================================
+   OFFICER DASHBOARD & TABLE REDESIGN
+   ========================================= */
+
+.custom-table {
+  border-collapse: separate;
+  border-spacing: 0 12px;
+  background: transparent;
+}
+
+.custom-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  border: none !important;
+  padding-bottom: 8px;
+  padding-top: 0;
+}
+
+.custom-table tbody tr {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md);
+}
+
+.custom-table tbody tr:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.custom-table td {
+  border-top: 1px solid var(--color-border-light) !important;
+  border-bottom: 1px solid var(--color-border-light) !important;
+  background-color: transparent !important;
+  vertical-align: middle;
+}
+
+.custom-table td:first-child {
+  border-left: 1px solid var(--color-border-light) !important;
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
+}
+
+.custom-table td:last-child {
+  border-right: 1px solid var(--color-border-light) !important;
+  border-top-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+}
+
+/* Custom Pagination */
+.pagination-modern {
+  gap: 8px;
+}
+.pagination-modern .page-item .page-link {
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  padding: 8px 16px;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+.pagination-modern .page-item .page-link:hover {
+  background: var(--color-surface-2);
+  color: var(--color-accent);
+}
+.pagination-modern .page-item.active .page-link {
+  background: var(--color-accent);
+  color: white;
+  box-shadow: 0 4px 12px rgba(61, 154, 110, 0.25);
+}
+.pagination-modern .page-item.disabled .page-link {
+  color: #cbd5e1;
+  background: transparent;
+}
