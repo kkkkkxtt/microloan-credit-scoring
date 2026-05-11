@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, Date 
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -32,7 +32,7 @@ class UserProfile(Base):
     user_id = Column(Integer, ForeignKey("users.user_id"), unique=True, nullable=False)
 
     gender = Column(String, nullable=True) 
-    date_of_birth = Column(String, nullable=True) 
+    date_of_birth = Column(Date, nullable=True) 
     annual_income = Column(Float, nullable=True)
     phone_number = Column(String, nullable=True)
 
