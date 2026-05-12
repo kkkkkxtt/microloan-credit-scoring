@@ -214,7 +214,7 @@ function App() {
             style={{ maxWidth: '500px', width: '100%', paddingLeft: '1rem' }}
           >
             <button
-              className="btn btn-link text-muted-custom text-decoration-none p-0 mb-3 d-flex align-items-center"
+              className="btn btn-back-theme"
               onClick={() => setShowAuth(false)}
             >
               <ArrowLeft size={18} className="me-1" /> Back to Home
@@ -250,7 +250,7 @@ function App() {
             <div className="fade-in">
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <button
-                  className="btn btn-link text-muted-custom text-decoration-none p-0 d-flex align-items-center"
+                  className="btn btn-back-theme"
                   onClick={() => {
                     setCurrentView('home');
                     setResultView('analysis');
@@ -1026,14 +1026,22 @@ function App() {
                     <h2 className="hero-title">
                       Ready to start your assessment?
                     </h2>
-                    <p className="hero-description mx-auto">
+                    <p
+                      className="text-muted-custom mb-4"
+                      style={{
+                        lineHeight: '1.75',
+                        fontSize: '1.05rem',
+                        maxWidth: '900px',
+                      }}
+                    >
                       Fill out our secure, streamlined application form. Our
                       Explainable AI will analyze your financial profile and
                       provide a transparent decision in seconds.
                     </p>
-                    <div className="mt-4">
+                    <div className="text-center mt-5 mb-2">
                       <button
-                        className="btn btn-cta"
+                        className="btn btn-cta px-5 py-3 shadow-sm"
+                        style={{ fontSize: '1.05rem' }}
                         onClick={() => setCurrentView('form')}
                       >
                         Start Application <ArrowRight size={18} />
@@ -1157,13 +1165,15 @@ function App() {
                           </Col>
                           <Col xs={3} className="text-end">
                             <button
-                              className="btn btn-link p-0 small text-emerald fw-bold d-inline-flex align-items-center record-detail-btn"
+                              className="btn p-0 small border-0 bg-transparent text-decoration-none d-inline-flex align-items-center record-detail-btn"
                               onClick={() => {
                                 setResult(record);
                                 setCurrentView('result');
                               }}
                             >
-                              Click for Details <ArrowRight size={14} />
+                              <span className="link-emerald">
+                                Click for Details <ArrowRight size={16} />
+                              </span>
                             </button>
                           </Col>
                         </Row>

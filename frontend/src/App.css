@@ -631,3 +631,42 @@ input[type='date'].is-invalid::-webkit-calendar-picker-indicator {
   color: #cbd5e1;
   background: transparent;
 }
+
+/* =========================================
+   RECORD PAGE NAVIGATION & LINKS
+   ========================================= */
+
+.link-emerald {
+  color: var(--color-accent) !important;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.link-emerald:hover {
+  color: #3d9a6e !important;
+  text-decoration: underline;
+  transform: translateX(2px);
+}
+
+.btn-back-theme {
+  color: var(--color-text-muted) !important;
+  border-radius: 10px !important;
+  padding: 8px 20px !important;
+  font-weight: 600 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease !important;
+}
+
+.btn-back-theme:hover {
+  color: var(--color-text) !important;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
