@@ -8,7 +8,6 @@ import {
   DollarSign,
   ArrowLeft,
   ShieldCheck,
-  Sparkles,
   LogOut,
   Users,
 } from 'lucide-react';
@@ -25,6 +24,8 @@ import OfficerDashboard from './components/OfficerDashboard';
 import MainPage from './components/MainPage';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import ApplicantDashboard from './components/ApplicantDashboard';
+import RecordPage from './components/RecordPage';
 
 function App() {
   const { user, logout, loading: authLoading } = useContext(AuthContext);
@@ -41,12 +42,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [history, setHistory] = useState([]);
-  const [resultView, setResultView] = useState('analysis');
-  const [searchError, setSearchError] = useState('');
 
-  // --- NEW: Applicant Pagination State ---
   const [historyPage, setHistoryPage] = useState(1);
   const historyPerPage = 5;
+
+  const [resultView, setResultView] = useState('analysis');
+  const [searchError, setSearchError] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -67,6 +68,7 @@ function App() {
       if (homeTab === 'record' && user?.role === 'applicant') {
         setSearchQuery('');
         setHistoryPage(1);
+        setSearchError('');
 
         try {
           // --- SECURE & INSTANT SYNC ---
@@ -299,7 +301,7 @@ function App() {
                 <div style={{ width: '150px' }}></div>
               </div>
 
-              {resultView === 'analysis' ? (
+              {resultView === 'analysis' && (
                 <div className="custom-card p-4 p-md-5 slide-down">
                   <Row className="align-items-center border-bottom pb-4 mb-4">
                     <Col md={5} className="text-center">
@@ -527,293 +529,8 @@ function App() {
                     </Row>
                   )}
                 </div>
-              ) : (
-                <div className="custom-card p-4 p-md-5 slide-down">
-                  <div className="d-flex align-items-center mb-5 pb-3 border-bottom">
-                    <h3 className="fw-bold text-slate m-0">
-                      Submitted Application Data
-                    </h3>
-                    <span className="ms-auto badge bg-light text-dark border px-3 py-2">
-                      ID: AP{result.applicant_ic}
-                    </span>
-                  </div>
-
-                  {(() => {
-                    const data =
-                      result.raw_features_log || result.input_features || {};
-                    const formatMoney = (val) =>
-                      val
-                        ? new Intl.NumberFormat('en-US', {
-                            style: 'currency',
-                            currency: 'USD',
-                          }).format(val)
-                        : '-';
-                    const getAge = (days) =>
-                      days
-                        ? Math.floor(Math.abs(days) / 365.25) + ' years old'
-                        : '-';
-
-                    const ReadOnlyField = ({ label, value }) => (
-                      <Col md={4} sm={6} className="mb-4">
-                        <div className="py-2 border-bottom border-light h-100">
-                          <div className="text-muted-custom small fw-semibold mb-2">
-                            {label}
-                          </div>
-                          <div className="fw-bold text-slate fs-6">
-                            {value !== null &&
-                            value !== '' &&
-                            value !== undefined
-                              ? value
-                              : '-'}
-                          </div>
-                        </div>
-                      </Col>
-                    );
-
-                    const SectionHeader = ({ number, title }) => (
-                      <div className="d-flex align-items-center mb-4 mt-5">
-                        <div
-                          className="step-circle me-3"
-                          style={{
-                            width: '35px',
-                            height: '35px',
-                            fontSize: '1rem',
-                            minWidth: '35px',
-                          }}
-                        >
-                          {number}
-                        </div>
-                        <h4 className="fw-bold text-slate m-0 fs-5">{title}</h4>
-                      </div>
-                    );
-
-                    const getContacts = () => {
-                      const contacts = [];
-                      if (String(data.FLAG_EMAIL) === '1')
-                        contacts.push('Email');
-                      if (String(data.FLAG_MOBIL) === '1')
-                        contacts.push('Mobile');
-                      if (String(data.FLAG_EMP_PHONE) === '1')
-                        contacts.push('Employer');
-                      if (String(data.FLAG_WORK_PHONE) === '1')
-                        contacts.push('Work');
-                      if (String(data.FLAG_PHONE) === '1')
-                        contacts.push('Home');
-                      return contacts.length > 0
-                        ? contacts.join(', ')
-                        : 'None Provided';
-                    };
-
-                    const getGeoDeclarations = () => {
-                      const diffs = [];
-                      if (String(data.REG_CITY_NOT_LIVE_CITY) === '1')
-                        diffs.push('Permanent & Contact City are different');
-                      if (String(data.REG_CITY_NOT_WORK_CITY) === '1')
-                        diffs.push('Permanent & Work City are different');
-                      if (String(data.REG_REGION_NOT_LIVE_REGION) === '1')
-                        diffs.push('Permanent & Contact Region are different');
-                      if (String(data.REG_REGION_NOT_WORK_REGION) === '1')
-                        diffs.push('Permanent & Work Region are different');
-                      if (String(data.LIVE_CITY_NOT_WORK_CITY) === '1')
-                        diffs.push('Contact & Work City are different');
-                      if (String(data.LIVE_REGION_NOT_WORK_REGION) === '1')
-                        diffs.push('Contact & Work Region are different');
-
-                      if (diffs.length === 0)
-                        return (
-                          <span className="text-emerald fw-medium">
-                            All addresses match
-                          </span>
-                        );
-
-                      return (
-                        <div className="d-flex flex-column gap-1 pt-1">
-                          {diffs.map((diff, i) => (
-                            <span
-                              key={i}
-                              className="badge bg-light text-dark border fw-medium text-start text-wrap lh-base py-1 px-2"
-                              style={{ fontSize: '0.8rem' }}
-                            >
-                              • {diff}
-                            </span>
-                          ))}
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div className="read-only-form">
-                        <div style={{ marginTop: '-1.5rem' }}>
-                          <SectionHeader
-                            number="1"
-                            title="Personal Demographics"
-                          />
-                        </div>
-                        <Row className="mb-2 g-3">
-                          <ReadOnlyField
-                            label="What is your gender?"
-                            value={
-                              data.CODE_GENDER === 1 || data.CODE_GENDER === 'M'
-                                ? 'Male'
-                                : data.CODE_GENDER === 0 ||
-                                    data.CODE_GENDER === 'F'
-                                  ? 'Female'
-                                  : 'Unknown'
-                            }
-                          />
-                          <ReadOnlyField
-                            label="Calculated Age"
-                            value={getAge(data.DAYS_BIRTH)}
-                          />
-                          <ReadOnlyField
-                            label="Current marital status?"
-                            value={data.NAME_FAMILY_STATUS}
-                          />
-                          <ReadOnlyField
-                            label="Highest level of education?"
-                            value={data.NAME_EDUCATION_TYPE}
-                          />
-                          <ReadOnlyField
-                            label="Total children do you have?"
-                            value={data.CNT_CHILDREN}
-                          />
-                          <ReadOnlyField
-                            label="Total members in household?"
-                            value={data.CNT_FAM_MEMBERS}
-                          />
-                        </Row>
-
-                        <SectionHeader number="2" title="Contact & Assets" />
-                        <Row className="mb-2 g-3">
-                          <ReadOnlyField
-                            label="Do you own a car?"
-                            value={data.FLAG_OWN_CAR === 'Y' ? 'Yes' : 'No'}
-                          />
-                          <ReadOnlyField
-                            label="Car age (years)?"
-                            value={data.OWN_CAR_AGE || '0'}
-                          />
-                          <ReadOnlyField
-                            label="Do you own real estate?"
-                            value={data.FLAG_OWN_REALTY === 'Y' ? 'Yes' : 'No'}
-                          />
-                          <ReadOnlyField
-                            label="Months since phone change?"
-                            value={
-                              data.DAYS_LAST_PHONE_CHANGE
-                                ? Math.abs(data.DAYS_LAST_PHONE_CHANGE)
-                                : '0'
-                            }
-                          />
-                          <ReadOnlyField
-                            label="Provided Contact Methods"
-                            value={getContacts()}
-                          />
-                        </Row>
-
-                        <SectionHeader number="3" title="Housing & Geography" />
-                        <Row className="mb-2 g-3">
-                          <ReadOnlyField
-                            label="Living situation?"
-                            value={data.NAME_HOUSING_TYPE}
-                          />
-                          <ReadOnlyField
-                            label="Building type?"
-                            value={data.HOUSETYPE_MODE}
-                          />
-                          <ReadOnlyField
-                            label="Building wall material?"
-                            value={
-                              Array.isArray(data.WALLSMATERIAL_MODE)
-                                ? data.WALLSMATERIAL_MODE.join(', ')
-                                : data.WALLSMATERIAL_MODE
-                            }
-                          />
-                          <ReadOnlyField
-                            label="Maintenance fund structure?"
-                            value={data.FONDKAPREMONT_MODE}
-                          />
-                          <ReadOnlyField
-                            label="Emergency state?"
-                            value={data.EMERGENCYSTATE_MODE}
-                          />
-                          <ReadOnlyField
-                            label="Address Check Results"
-                            value={getGeoDeclarations()}
-                          />
-                        </Row>
-
-                        <SectionHeader number="4" title="Employment & Income" />
-                        <Row className="mb-2 g-3">
-                          <ReadOnlyField
-                            label="Primary source of income?"
-                            value={data.NAME_INCOME_TYPE}
-                          />
-                          <ReadOnlyField
-                            label="Total annual income?"
-                            value={formatMoney(data.AMT_INCOME_TOTAL)}
-                          />
-                          <ReadOnlyField
-                            label="Years at current job?"
-                            value={
-                              data.DAYS_EMPLOYED === 365243
-                                ? 'N/A (Pensioner/Unemployed)'
-                                : getAge(data.DAYS_EMPLOYED).replace(' old', '')
-                            }
-                          />
-                          <ReadOnlyField
-                            label="Job Title / Occupation (Search)?"
-                            value={data.OCCUPATION_TYPE || 'Not Specified'}
-                          />
-                          <ReadOnlyField
-                            label="Industry / Organization Type (Search)?"
-                            value={data.ORGANIZATION_TYPE}
-                          />
-                        </Row>
-
-                        <SectionHeader number="5" title="Loan Details" />
-                        <Row className="mb-2 g-3">
-                          <ReadOnlyField
-                            label="Loan Type?"
-                            value={data.NAME_CONTRACT_TYPE}
-                          />
-                          <ReadOnlyField
-                            label="Requested borrow amount?"
-                            value={formatMoney(data.AMT_CREDIT)}
-                          />
-                          <ReadOnlyField
-                            label="Preferred yearly repayment?"
-                            value={formatMoney(data.AMT_ANNUITY)}
-                          />
-                          <ReadOnlyField
-                            label="Specific item price?"
-                            value={formatMoney(data.AMT_GOODS_PRICE)}
-                          />
-                        </Row>
-
-                        <SectionHeader
-                          number="6"
-                          title="Final Declarations (Social Risk)"
-                        />
-                        <Row className="mb-2 g-3">
-                          <ReadOnlyField
-                            label="Social circle past due (30 days)?"
-                            value={data.OBS_30_CNT_SOCIAL_CIRCLE}
-                          />
-                          <ReadOnlyField
-                            label="Social circle defaulted (30 days)?"
-                            value={data.DEF_30_CNT_SOCIAL_CIRCLE}
-                          />
-                          <ReadOnlyField
-                            label="Social circle defaulted (60 days)?"
-                            value={data.DEF_60_CNT_SOCIAL_CIRCLE}
-                          />
-                        </Row>
-                      </div>
-                    );
-                  })()}
-                </div>
               )}
+              {resultView === 'record' && <RecordPage result={result} />}
             </div>
           )
         )}
@@ -1018,37 +735,9 @@ function App() {
               {homeTab === 'profile' ? (
                 <Profile />
               ) : homeTab === 'apply' ? (
-                <div className="fade-in">
-                  <div className="home-hero mb-4 slide-down">
-                    <div className="hero-eyebrow">
-                      <Sparkles size={12} /> Applicant Dashboard
-                    </div>
-                    <h2 className="hero-title">
-                      Ready to start your assessment?
-                    </h2>
-                    <p
-                      className="text-muted-custom mb-4"
-                      style={{
-                        lineHeight: '1.75',
-                        fontSize: '1.05rem',
-                        maxWidth: '900px',
-                      }}
-                    >
-                      Fill out our secure, streamlined application form. Our
-                      Explainable AI will analyze your financial profile and
-                      provide a transparent decision in seconds.
-                    </p>
-                    <div className="text-center mt-5 mb-2">
-                      <button
-                        className="btn btn-cta px-5 py-3 shadow-sm"
-                        style={{ fontSize: '1.05rem' }}
-                        onClick={() => setCurrentView('form')}
-                      >
-                        Start Application <ArrowRight size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <ApplicantDashboard
+                  onStartApplication={() => setCurrentView('form')}
+                />
               ) : (
                 <div className="fade-in">
                   <div className="mb-5 d-flex gap-2">

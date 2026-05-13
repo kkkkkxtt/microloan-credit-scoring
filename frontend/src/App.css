@@ -670,3 +670,325 @@ input[type='date'].is-invalid::-webkit-calendar-picker-indicator {
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
+
+/* =============================================
+   APPLICANT DASHBOARD  (ApplicantDashboard.jsx)
+   Add these rules to App.css
+   ============================================= */
+
+/* Wrapper */
+.applicant-dashboard {
+  padding-bottom: 2rem;
+}
+
+/* Hero card */
+.dash-hero-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 2.5rem 2.75rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative radial blobs */
+.dash-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+.dash-blob--tr {
+  top: -80px;
+  right: -80px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(
+    circle,
+    rgba(61, 154, 110, 0.09) 0%,
+    transparent 70%
+  );
+}
+.dash-blob--bl {
+  bottom: -60px;
+  left: -60px;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(
+    circle,
+    rgba(74, 90, 168, 0.06) 0%,
+    transparent 70%
+  );
+}
+
+/* Inner two-column layout */
+.dash-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+  padding-bottom: 2.5rem;
+}
+
+/* Left: copy */
+.dash-hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dash-hero-title {
+  font-family: 'Fraunces', serif;
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 1.18;
+  color: var(--color-text);
+  margin: 0.75rem 0 1.1rem;
+}
+.dash-hero-title em {
+  font-style: italic;
+  color: var(--color-accent);
+}
+
+.dash-hero-desc {
+  color: var(--color-text-muted);
+  font-size: 1.02rem;
+  line-height: 1.75;
+  max-width: 480px;
+  margin-bottom: 2rem;
+}
+
+.dash-cta-btn {
+  align-self: flex-start;
+  font-size: 1rem !important;
+  padding: 14px 30px !important;
+}
+
+/* Right: 2×2 feature grid */
+.dash-feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dash-feature-tile {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: 1.2rem 1.1rem;
+  transition: all 0.22s ease;
+}
+.dash-feature-tile:hover {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-mid);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.dash-feature-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--color-accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent);
+  margin-bottom: 10px;
+}
+.dash-feature-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  margin: 0 0 3px;
+}
+.dash-feature-desc {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Bottom info strip */
+.dash-info-strip {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--color-border-light);
+  padding: 0.85rem 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+.dash-info-strip svg {
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+/* Responsive: stack on mobile */
+@media (max-width: 768px) {
+  .dash-hero-inner {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .dash-hero-card {
+    padding: 1.75rem 1.25rem 0;
+  }
+  .dash-hero-title {
+    font-size: 2rem;
+  }
+}
+
+/* =============================================
+   RECORD PAGE  (RecordPage.jsx)
+   Add these rules to App.css
+   ============================================= */
+
+/* Page header row */
+.rp-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.rp-page-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.25rem;
+}
+
+.rp-page-subtitle {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.rp-app-id-badge {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  align-self: center;
+}
+
+/* Main card */
+.rp-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2.25rem 2.5rem;
+}
+
+/* Section header */
+.rp-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 0.25rem;
+  margin-bottom: 1.5rem;
+}
+.rp-section-header:not(:first-child) {
+  margin-top: 0;
+}
+
+.rp-section-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rp-section-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* Divider between sections */
+.rp-divider {
+  height: 1px;
+  background: var(--color-border-light);
+  margin: 1.25rem 0 2rem;
+}
+
+/* Individual read-only field */
+.rp-field {
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 0.6rem;
+  height: 100%;
+}
+
+.rp-field-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+}
+
+.rp-field-value {
+  font-weight: 700;
+  font-size: 0.97rem;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Geography helpers */
+.rp-match-ok {
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.rp-geo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 4px;
+}
+
+.rp-geo-badge {
+  display: inline-block;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .rp-card {
+    padding: 1.25rem 1rem;
+  }
+  .rp-page-header {
+    flex-direction: column;
+  }
+}

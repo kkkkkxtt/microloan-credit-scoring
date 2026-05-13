@@ -183,12 +183,7 @@ const OfficerDashboard = ({ onViewDetails }) => {
           <Briefcase size={28} color="var(--color-accent)" />
         </div>
         <div>
-          <h3
-            className="fw-bold m-0 text-slate"
-            style={{ fontFamily: 'Fraunces, serif' }}
-          >
-            Officer Workspace
-          </h3>
+          <h3 className="fw-bold text-slate mb-3">Officer Workspace</h3>
           <p className="text-muted-custom small m-0 mt-1">
             Review pending applications, verify ML logic, and manage final
             decisions.
@@ -210,78 +205,275 @@ const OfficerDashboard = ({ onViewDetails }) => {
               </tr>
             </thead>
             <tbody>
-              {currentRecords.map((app) => (
-                <tr key={app.id}>
-                  <td className="px-4 py-3">
-                    <div className="mb-2">
-                      <span
-                        style={{
-                          backgroundColor: 'var(--color-accent-light)',
-                          color: 'var(--color-accent)',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          fontWeight: '700',
-                          fontSize: '0.75rem',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        OWA{app.id}
-                      </span>
-                    </div>
-                    <div className="small fw-bold text-slate mb-1">
-                      Ref: AP{app.applicant_ic}
-                    </div>
-                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-                      {new Date(app.application_date).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="py-3 fw-bold text-slate">
-                    {app.applicant_name}
-                  </td>
-                  <td className="py-3">
-                    <span
-                      className="badge d-inline-flex align-items-center gap-1"
-                      style={{
-                        backgroundColor: '#fce8e8',
-                        color: '#ef4444',
-                        padding: '6px 10px',
-                        border: '1px solid #fca5a5',
-                      }}
-                    >
-                      <Activity size={14} />
-                      AI: {app.ai_decision} (
-                      {(app.risk_probability * 100).toFixed(1)}% Risk)
-                    </span>
-                  </td>
-                  <td className="py-3">{renderFinalStatus(app)}</td>
-                  <td className="px-4 py-3 text-end">
-                    <button
-                      onClick={() => onViewDetails(app)}
-                      className="btn btn-sm fw-bold me-2 transition-all"
-                      style={{
-                        backgroundColor: '#f8fafc',
-                        border: '1px solid #cbd5e1',
-                        color: '#475569',
-                      }}
-                      onMouseOver={(e) =>
-                        (e.target.style.backgroundColor = '#e2e8f0')
-                      }
-                      onMouseOut={(e) =>
-                        (e.target.style.backgroundColor = '#f8fafc')
-                      }
-                    >
-                      <FileText size={14} className="me-1" /> Details
-                    </button>
-                    <button
-                      onClick={() => setSelectedApp(app)}
-                      className="btn btn-sm fw-bold btn-cta"
-                      style={{ padding: '6px 14px' }}
-                    >
-                      Review
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {currentRecords.map((app) => {
+                const isApproved = app.ai_decision === 'Approve';
+                const assessmentStyle = {
+                  backgroundColor: isApproved ? '#ecfdf5' : '#fce8e8',
+                  color: isApproved ? '#166534' : '#b91c1c',
+                  padding: '6px 10px',
+                  border: `1px solid ${isApproved ? '#a7f3d0' : '#fca5a5'}`,
+                };
+
+                return (
+                  <React.Fragment key={app.id}>
+                    <tr>
+                      <td className="px-4 py-3">
+                        <div className="mb-2">
+                          <span
+                            style={{
+                              backgroundColor: 'var(--color-accent-light)',
+                              color: 'var(--color-accent)',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '700',
+                              fontSize: '0.75rem',
+                              letterSpacing: '0.05em',
+                            }}
+                          >
+                            OWAP{app.id}
+                          </span>
+                        </div>
+                        <div className="small fw-bold text-slate mb-1">
+                          Ref: AP{app.applicant_ic}
+                        </div>
+                        <div
+                          className="text-muted"
+                          style={{ fontSize: '0.75rem' }}
+                        >
+                          {new Date(app.application_date).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="py-3 fw-bold text-slate">
+                        {app.applicant_name}
+                      </td>
+                      <td className="py-3">
+                        <span
+                          className="badge d-inline-flex align-items-center gap-1"
+                          style={assessmentStyle}
+                        >
+                          <Activity size={14} />
+                          AI: {app.ai_decision} (
+                          {(app.risk_probability * 100).toFixed(1)}% Risk)
+                        </span>
+                      </td>
+                      <td className="py-3">{renderFinalStatus(app)}</td>
+                      <td className="px-4 py-3 text-end">
+                        <button
+                          onClick={() => onViewDetails(app)}
+                          className="btn btn-sm fw-bold me-2 transition-all"
+                          style={{
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid #cbd5e1',
+                            color: '#475569',
+                          }}
+                          onMouseOver={(e) =>
+                            (e.target.style.backgroundColor = '#e2e8f0')
+                          }
+                          onMouseOut={(e) =>
+                            (e.target.style.backgroundColor = '#f8fafc')
+                          }
+                        >
+                          <FileText size={14} className="me-1" /> Details
+                        </button>
+                        <button
+                          onClick={() => setSelectedApp(app)}
+                          className="btn btn-sm fw-bold btn-cta"
+                          style={{ padding: '6px 14px' }}
+                        >
+                          Review
+                        </button>
+                      </td>
+                    </tr>
+
+                    {selectedApp?.id === app.id && (
+                      <tr>
+                        <td colSpan="5" className="p-0 border-0">
+                          <div
+                            className="custom-card p-4 p-md-5 mt-3"
+                            style={{
+                              borderRadius: '24px',
+                              border: '1px solid var(--color-border-light)',
+                              boxShadow: 'var(--shadow-lg)',
+                            }}
+                          >
+                            <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+                              <div>
+                                <h5 className="fw-bold text-slate mb-3">
+                                  Manual Review Assessment
+                                </h5>
+                                <p className="text-muted-custom small m-0 mt-1">
+                                  Record OWAP{selectedApp.id} Ref: AP
+                                  {selectedApp.applicant_ic}
+                                </p>
+                              </div>
+                              <button
+                                className="btn-close"
+                                onClick={() => setSelectedApp(null)}
+                              ></button>
+                            </div>
+
+                            <div
+                              className="p-4 mb-4 d-flex gap-3 align-items-start"
+                              style={{
+                                backgroundColor: 'var(--color-accent-light)',
+                                border: '1px solid var(--color-accent-mid)',
+                                borderRadius: '16px',
+                              }}
+                            >
+                              <AlertCircle
+                                size={24}
+                                color="var(--color-accent)"
+                                className="mt-1 flex-shrink-0"
+                              />
+                              <div className="text-start">
+                                <strong
+                                  style={{
+                                    color: 'var(--color-accent)',
+                                    fontSize: '1.05rem',
+                                  }}
+                                >
+                                  AI Recommendation: {selectedApp.ai_decision}
+                                </strong>
+                                <div
+                                  style={{
+                                    color: '#2a6a4c',
+                                    fontSize: '0.9rem',
+                                    marginTop: '4px',
+                                    lineHeight: '1.5',
+                                  }}
+                                >
+                                  The Machine Learning model evaluated this
+                                  applicant with a{' '}
+                                  <strong>
+                                    {(
+                                      selectedApp.risk_probability * 100
+                                    ).toFixed(1)}
+                                    %
+                                  </strong>{' '}
+                                  probability of default. Please review the
+                                  applicant's details and SHAP explanation chart
+                                  before providing your final human
+                                  justification.
+                                </div>
+                              </div>
+                            </div>
+
+                            <form onSubmit={handleOverrideSubmit}>
+                              <div className="mb-4 text-start">
+                                <label className="fw-bold d-block mb-3 text-slate">
+                                  1. Final Manual Decision
+                                </label>
+                                <div className="d-flex gap-3">
+                                  <button
+                                    type="button"
+                                    className="btn flex-fill py-3 fw-bold d-flex justify-content-center align-items-center transition-all"
+                                    style={{
+                                      border:
+                                        overrideDecision === 'Approve'
+                                          ? '2px solid var(--color-accent)'
+                                          : '2px solid var(--color-border)',
+                                      backgroundColor:
+                                        overrideDecision === 'Approve'
+                                          ? 'var(--color-accent-light)'
+                                          : 'transparent',
+                                      color:
+                                        overrideDecision === 'Approve'
+                                          ? 'var(--color-accent)'
+                                          : 'var(--color-text-muted)',
+                                      borderRadius: '12px',
+                                    }}
+                                    onClick={() =>
+                                      setOverrideDecision('Approve')
+                                    }
+                                  >
+                                    <CheckCircle size={20} className="me-2" />{' '}
+                                    Approve Application
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn flex-fill py-3 fw-bold d-flex justify-content-center align-items-center transition-all"
+                                    style={{
+                                      border:
+                                        overrideDecision === 'Reject'
+                                          ? '2px solid #ef4444'
+                                          : '2px solid var(--color-border)',
+                                      backgroundColor:
+                                        overrideDecision === 'Reject'
+                                          ? '#fce8e8'
+                                          : 'transparent',
+                                      color:
+                                        overrideDecision === 'Reject'
+                                          ? '#ef4444'
+                                          : 'var(--color-text-muted)',
+                                      borderRadius: '12px',
+                                    }}
+                                    onClick={() =>
+                                      setOverrideDecision('Reject')
+                                    }
+                                  >
+                                    <XCircle size={20} className="me-2" />{' '}
+                                    Reject Application
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="mb-4 text-start">
+                                <label className="fw-bold d-block mb-2 text-slate">
+                                  2. Officer Justification & Comments
+                                </label>
+                                <p className="small text-muted-custom mb-3">
+                                  Provide reasoning for confirming or overriding
+                                  the AI's decision. This will be stored for
+                                  compliance auditing.
+                                </p>
+                                <textarea
+                                  className="form-control p-3"
+                                  rows="4"
+                                  placeholder="Enter your detailed reasoning here..."
+                                  value={justification}
+                                  onChange={(e) =>
+                                    setJustification(e.target.value)
+                                  }
+                                  style={{
+                                    resize: 'none',
+                                    backgroundColor: 'var(--color-surface-2)',
+                                    border: '1px solid var(--color-border)',
+                                    borderRadius: '12px',
+                                    fontSize: '0.95rem',
+                                  }}
+                                  required
+                                />
+                              </div>
+
+                              <button
+                                type="submit"
+                                className="btn w-100 fw-bold py-3 mt-2 transition-all"
+                                style={{
+                                  backgroundColor: isSubmitDisabled
+                                    ? '#e2e8e0'
+                                    : 'var(--color-accent)',
+                                  color: isSubmitDisabled ? '#94a3b8' : 'white',
+                                  border: 'none',
+                                  borderRadius: '12px',
+                                  boxShadow: isSubmitDisabled
+                                    ? 'none'
+                                    : '0 8px 24px rgba(61, 154, 110, 0.25)',
+                                  cursor: isSubmitDisabled
+                                    ? 'not-allowed'
+                                    : 'pointer',
+                                }}
+                                disabled={isSubmitDisabled}
+                              >
+                                Sign & Submit Final Decision
+                              </button>
+                            </form>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -323,176 +515,6 @@ const OfficerDashboard = ({ onViewDetails }) => {
               </button>
             </li>
           </ul>
-        </div>
-      )}
-
-      {/* REVIEW PANEL OVERLAY */}
-      {selectedApp && (
-        <div className="slide-down mb-5">
-          <div
-            className="custom-card p-4 p-md-5"
-            style={{
-              borderRadius: '24px',
-              border: '1px solid var(--color-border-light)',
-              boxShadow: 'var(--shadow-lg)',
-            }}
-          >
-            <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-              <div>
-                <h5
-                  className="fw-bold m-0 text-slate"
-                  style={{ fontFamily: 'Fraunces, serif' }}
-                >
-                  Manual Review Assessment
-                </h5>
-                <p className="text-muted-custom small m-0 mt-1">
-                  Record OWAP{selectedApp.applicant_ic}
-                </p>
-              </div>
-              <button
-                className="btn-close"
-                onClick={() => setSelectedApp(null)}
-              ></button>
-            </div>
-
-            <div
-              className="p-4 mb-4 d-flex gap-3 align-items-start"
-              style={{
-                backgroundColor: 'var(--color-accent-light)',
-                border: '1px solid var(--color-accent-mid)',
-                borderRadius: '16px',
-              }}
-            >
-              <AlertCircle
-                size={24}
-                color="var(--color-accent)"
-                className="mt-1 flex-shrink-0"
-              />
-              <div className="text-start">
-                <strong
-                  style={{ color: 'var(--color-accent)', fontSize: '1.05rem' }}
-                >
-                  AI Recommendation: {selectedApp.ai_decision}
-                </strong>
-                <div
-                  style={{
-                    color: '#2a6a4c',
-                    fontSize: '0.9rem',
-                    marginTop: '4px',
-                    lineHeight: '1.5',
-                  }}
-                >
-                  The Machine Learning model evaluated this applicant with a{' '}
-                  <strong>
-                    {(selectedApp.risk_probability * 100).toFixed(1)}%
-                  </strong>{' '}
-                  probability of default. Please review the applicant's details
-                  and SHAP explanation chart before providing your final human
-                  justification.
-                </div>
-              </div>
-            </div>
-
-            <form onSubmit={handleOverrideSubmit}>
-              <div className="mb-4 text-start">
-                <label className="fw-bold d-block mb-3 text-slate">
-                  1. Final Manual Decision
-                </label>
-                <div className="d-flex gap-3">
-                  <button
-                    type="button"
-                    className="btn flex-fill py-3 fw-bold d-flex justify-content-center align-items-center transition-all"
-                    style={{
-                      border:
-                        overrideDecision === 'Approve'
-                          ? '2px solid var(--color-accent)'
-                          : '2px solid var(--color-border)',
-                      backgroundColor:
-                        overrideDecision === 'Approve'
-                          ? 'var(--color-accent-light)'
-                          : 'transparent',
-                      color:
-                        overrideDecision === 'Approve'
-                          ? 'var(--color-accent)'
-                          : 'var(--color-text-muted)',
-                      borderRadius: '12px',
-                    }}
-                    onClick={() => setOverrideDecision('Approve')}
-                  >
-                    <CheckCircle size={20} className="me-2" /> Approve
-                    Application
-                  </button>
-                  <button
-                    type="button"
-                    className="btn flex-fill py-3 fw-bold d-flex justify-content-center align-items-center transition-all"
-                    style={{
-                      border:
-                        overrideDecision === 'Reject'
-                          ? '2px solid #ef4444'
-                          : '2px solid var(--color-border)',
-                      backgroundColor:
-                        overrideDecision === 'Reject'
-                          ? '#fce8e8'
-                          : 'transparent',
-                      color:
-                        overrideDecision === 'Reject'
-                          ? '#ef4444'
-                          : 'var(--color-text-muted)',
-                      borderRadius: '12px',
-                    }}
-                    onClick={() => setOverrideDecision('Reject')}
-                  >
-                    <XCircle size={20} className="me-2" /> Reject Application
-                  </button>
-                </div>
-              </div>
-
-              <div className="mb-4 text-start">
-                <label className="fw-bold d-block mb-2 text-slate">
-                  2. Officer Justification & Comments
-                </label>
-                <p className="small text-muted-custom mb-3">
-                  Provide reasoning for confirming or overriding the AI's
-                  decision. This will be stored for compliance auditing.
-                </p>
-                <textarea
-                  className="form-control p-3"
-                  rows="4"
-                  placeholder="Enter your detailed reasoning here..."
-                  value={justification}
-                  onChange={(e) => setJustification(e.target.value)}
-                  style={{
-                    resize: 'none',
-                    backgroundColor: 'var(--color-surface-2)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                  }}
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="btn w-100 fw-bold py-3 mt-2 transition-all"
-                style={{
-                  backgroundColor: isSubmitDisabled
-                    ? '#e2e8f0'
-                    : 'var(--color-accent)',
-                  color: isSubmitDisabled ? '#94a3b8' : 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  boxShadow: isSubmitDisabled
-                    ? 'none'
-                    : '0 8px 24px rgba(61, 154, 110, 0.25)',
-                  cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
-                }}
-                disabled={isSubmitDisabled}
-              >
-                Sign & Submit Final Decision
-              </button>
-            </form>
-          </div>
         </div>
       )}
     </div>

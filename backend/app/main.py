@@ -46,15 +46,15 @@ async def startup_event():
 @app.get("/latest-id")
 async def get_latest_id(db: Session = Depends(get_db)):
     try:
-        # Query max ID using SQLAlchemy
+        # Query max numeric application ID using SQLAlchemy
         max_ic = db.query(func.max(cast(ApplicationRecord.application_id, Integer)))\
                    .filter(ApplicationRecord.application_id.op('~')('^[0-9]+$'))\
                    .scalar()
         
-        latest_id = max_ic if max_ic else 100000
+        latest_id = max_ic if max_ic else 0
         return {"latest_id": latest_id + 1}
     except Exception as e:
-        return {"latest_id": 100001}
+        return {"latest_id": 1}
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
