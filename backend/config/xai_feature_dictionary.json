@@ -1,232 +1,324 @@
 {
   "CREDIT_TERM": {
     "display_name": "Requested Loan Term",
-    "reason": "The requested loan repayment period is severely misaligned with our safety parameters.",
-    "action": "Adjust the requested loan amount or monthly annuity to fit a standard 12-36 month term."
+    "risk_reason": "The requested loan repayment period is severely misaligned with our safety parameters.",
+    "risk_action": "Adjust the requested loan amount or monthly annuity to fit a standard 12-36 month term.",
+    "protective_reason": "Your chosen repayment period is well-balanced with your financial capacity.",
+    "protective_action": "This standard term length strongly supports your loan affordability and reduced risk."
   },
   "ANNUITY_INCOME_PERCENT": {
     "display_name": "Debt-to-Income Ratio (Repayment)",
-    "reason": "The scheduled payment takes up too high of a percentage of your currently reported salary.",
-    "action": "Apply for a smaller loan, or provide documentation of additional verifiable household income."
+    "risk_reason": "The scheduled payment takes up too high of a percentage of your currently reported salary.",
+    "risk_action": "Apply for a smaller loan, or provide documentation of additional verifiable household income.",
+    "protective_reason": "Your scheduled payments take up a very safe, manageable percentage of your salary.",
+    "protective_action": "This excellent debt-to-income ratio was a major factor in demonstrating your ability to repay."
   },
   "CREDIT_INCOME_PERCENT": {
     "display_name": "Credit-to-Income Ratio (Total)",
-    "reason": "The total requested loan principal is disproportionately large compared to your documented annual income.",
-    "action": "Consider applying for a smaller principal amount or adding a co-applicant to increase total recognized income."
+    "risk_reason": "The total requested loan principal is disproportionately large compared to your documented annual income.",
+    "risk_action": "Consider applying for a smaller principal amount or adding a co-applicant to increase total recognized income.",
+    "protective_reason": "The total loan amount you requested is highly proportional to your annual income.",
+    "protective_action": "This conservative borrowing approach significantly strengthened your application."
   },
   "EMPLOYED_AGE_PERCENT": {
     "display_name": "Career Stability Ratio",
-    "reason": "The length of your employment history relative to your age suggests career volatility.",
-    "action": "Maintain current employment for another 6-12 months before reapplying to build a stronger profile."
+    "risk_reason": "The length of your employment history relative to your age suggests career volatility.",
+    "risk_action": "Maintain current employment for another 6-12 months before reapplying to build a stronger profile.",
+    "protective_reason": "You have demonstrated excellent long-term career stability relative to your age.",
+    "protective_action": "Consistent, long-term employment is a strong indicator of financial reliability."
   },
   "GOODS_CREDIT_PERCENT": {
     "display_name": "Goods-to-Credit Ratio",
-    "reason": "The requested loan amount deviates significantly from the actual price of the goods being financed.",
-    "action": "Ensure the requested loan amount closely matches the retail price of the asset."
+    "risk_reason": "The requested loan amount deviates significantly from the actual price of the goods being financed.",
+    "risk_action": "Ensure the requested loan amount closely matches the retail price of the asset.",
+    "protective_reason": "Your requested loan amount perfectly matches the value of the financed goods.",
+    "protective_action": "This exact matching reduces speculative risk and improved your assessment."
   },
   "AMT_INCOME_TOTAL": {
     "display_name": "Total Annual Income",
-    "reason": "Baseline declared income determines the raw capacity to service ongoing debt.",
-    "action": "Include all verifiable secondary income sources (e.g., freelance, investments) with bank statements."
+    "risk_reason": "Baseline declared income indicates a constrained capacity to service ongoing debt.",
+    "risk_action": "Include all verifiable secondary income sources (e.g., freelance, investments) with bank statements.",
+    "protective_reason": "Your declared annual income provides a strong safety net for this loan.",
+    "protective_action": "High income capacity ensures you can comfortably manage this new financial commitment."
   },
   "AMT_CREDIT": {
     "display_name": "Total Loan Amount",
-    "reason": "The absolute size of the loan crosses high-risk thresholds for this specific demographic profile.",
-    "action": "Scale down the requested amount to fall within standard microloan boundaries."
+    "risk_reason": "The absolute size of the loan crosses high-risk thresholds for this specific demographic profile.",
+    "risk_action": "Scale down the requested amount to fall within standard microloan boundaries.",
+    "protective_reason": "The absolute size of the loan falls safely within standard risk thresholds for your profile.",
+    "protective_action": "Keeping the requested principal moderate significantly lowered your default risk score."
   },
   "AMT_ANNUITY": {
     "display_name": "Yearly Repayment Burden",
-    "reason": "The fixed payment size presents a high risk of default based on standard living expense estimates.",
-    "action": "Extend the loan term to decrease the yearly repayment amount."
+    "risk_reason": "The fixed payment size presents a high risk of default based on standard living expense estimates.",
+    "risk_action": "Extend the loan term to decrease the yearly repayment amount.",
+    "protective_reason": "The calculated yearly repayment is well within a comfortable range for your budget.",
+    "protective_action": "Keeping regular repayment obligations low is a key indicator of successful loan management."
   },
   "AMT_GOODS_PRICE": {
     "display_name": "Asset Collateral Value",
-    "reason": "The price of the item being purchased alters the risk of the loan becoming uncollateralized.",
-    "action": "Ensure the requested loan closely matches the actual price of the goods being financed."
+    "risk_reason": "The price of the item being purchased alters the risk of the loan becoming uncollateralized.",
+    "risk_action": "Ensure the requested loan closely matches the actual price of the goods being financed.",
+    "protective_reason": "The price of the purchased item provides strong collateral backing for this loan.",
+    "protective_action": "Strong asset backing provides a safety net that positively influenced the AI decision."
   },
   "NAME_CONTRACT_TYPE": {
     "display_name": "Loan Contract Type",
-    "reason": "Historical risk varies significantly between standard cash loans and revolving credit lines.",
-    "action": "Review whether a cash loan or revolving credit better fits your financial profile."
+    "risk_reason": "Historical risk varies significantly between standard cash loans and revolving credit lines.",
+    "risk_action": "Review whether a cash loan or revolving credit better fits your financial profile.",
+    "protective_reason": "The type of loan contract you selected aligns well with low-risk repayment patterns.",
+    "protective_action": "Your chosen contract type is statistically associated with high successful repayment rates."
   },
   "CODE_GENDER": {
     "display_name": "Demographic Baseline",
-    "reason": "Statistical baselines adjust risk slightly based on historical regional repayment trends.",
-    "action": "No direct action required; this is a minor automated demographic adjustment."
+    "risk_reason": "Statistical baselines adjust risk slightly based on historical regional repayment trends.",
+    "risk_action": "No direct action required; this is a minor automated demographic adjustment.",
+    "protective_reason": "Statistical baselines associate your demographic profile with historically strong regional repayment trends.",
+    "protective_action": "This automated demographic adjustment provided a slight positive boost to your profile."
   },
   "FLAG_OWN_CAR": {
     "display_name": "Vehicle Asset Declaration",
-    "reason": "Vehicle ownership acts as a proxy for disposable income and physical asset holding.",
-    "action": "Provide alternative proof of substantial assets if you do not own a vehicle."
+    "risk_reason": "Vehicle ownership acts as a proxy for disposable income and physical asset holding, which is lacking here.",
+    "risk_action": "Provide alternative proof of substantial assets if you do not own a vehicle.",
+    "protective_reason": "Your declared vehicle serves as a strong proxy for disposable income and physical asset holding.",
+    "protective_action": "Owning physical assets positively reinforced your overall financial stability score."
   },
   "OWN_CAR_AGE": {
     "display_name": "Asset Depreciation (Vehicle)",
-    "reason": "The age of declared vehicle assets suggests higher maintenance costs or lower collateral value.",
-    "action": "Exclude older vehicles from asset declarations or provide alternative stable collateral."
+    "risk_reason": "The age of declared vehicle assets suggests higher maintenance costs or lower collateral value.",
+    "risk_action": "Exclude older vehicles from asset declarations or provide alternative stable collateral.",
+    "protective_reason": "The age of your declared vehicle asset implies lower maintenance burdens and solid retained value.",
+    "protective_action": "Newer or well-maintained physical assets contribute to a healthier collateral profile."
   },
   "FLAG_OWN_REALTY": {
     "display_name": "Real Estate Asset Declaration",
-    "reason": "Property ownership strongly indicates long-term financial stability and settlement.",
-    "action": "Provide alternative proof of stable, long-term residence if you rent."
+    "risk_reason": "Property ownership strongly indicates long-term financial stability and settlement, which was not detected.",
+    "risk_action": "Provide alternative proof of stable, long-term residence if you rent.",
+    "protective_reason": "Property ownership strongly indicates long-term financial stability and settlement.",
+    "protective_action": "Real estate ownership is one of the strongest indicators of long-term reliability in our model."
   },
   "CNT_CHILDREN": {
     "display_name": "Total Children",
-    "reason": "The number of children directly impacts the monthly discretionary income available for loan repayment.",
-    "action": "Ensure declared income comfortably covers estimated living expenses for all dependents."
+    "risk_reason": "The number of children directly impacts the monthly discretionary income available for loan repayment.",
+    "risk_action": "Ensure declared income comfortably covers estimated living expenses for all dependents.",
+    "protective_reason": "The number of dependents is well-balanced against your reported income level.",
+    "protective_action": "A balanced ratio of income to dependents significantly reduces financial strain risk."
   },
   "CNT_FAM_MEMBERS": {
     "display_name": "Household Liabilities",
-    "reason": "Overall household size affects the per-capita income available for debt servicing.",
-    "action": "Include income from all contributing adult household members if possible."
+    "risk_reason": "Overall household size affects the per-capita income available for debt servicing.",
+    "risk_action": "Include income from all contributing adult household members if possible.",
+    "protective_reason": "Your household size and structure are highly sustainable given your financial resources.",
+    "protective_action": "Manageable household liabilities contributed to your strong affordability rating."
   },
   "NAME_INCOME_TYPE": {
     "display_name": "Income Classification",
-    "reason": "Non-standard, temporary, or self-employed income types carry higher baseline risk.",
-    "action": "Provide 6 months of audited bank statements to verify consistent cash flow."
+    "risk_reason": "Non-standard, temporary, or self-employed income types carry higher baseline risk.",
+    "risk_action": "Provide 6 months of audited bank statements to verify consistent cash flow.",
+    "protective_reason": "Your primary income source is classified within a highly stable and reliable category.",
+    "protective_action": "Stable, standardized income types are heavily favored by our risk assessment models."
   },
   "NAME_EDUCATION_TYPE": {
     "display_name": "Education Baseline",
-    "reason": "Education levels historically correlate with lifetime income stability and lower default rates.",
-    "action": "Provide continuous employment history to offset baseline demographic risks."
+    "risk_reason": "Education levels historically correlate with lifetime income stability and lower default rates.",
+    "risk_action": "Provide continuous employment history to offset baseline demographic risks.",
+    "protective_reason": "Your declared education level correlates strongly with stable, upward-trending income brackets.",
+    "protective_action": "This demographic factor provided a solid baseline of confidence for the AI."
   },
   "NAME_FAMILY_STATUS": {
     "display_name": "Household Structure",
-    "reason": "Marital and family status correlates statistically with dual-income household stability.",
-    "action": "Consider applying with a co-applicant to strengthen the household financial profile."
+    "risk_reason": "Marital and family status correlates statistically with dual-income household stability.",
+    "risk_action": "Consider applying with a co-applicant to strengthen the household financial profile.",
+    "protective_reason": "Your marital and family status correlates statistically with strong household stability.",
+    "protective_action": "Stable family structures often indicate a more resilient financial safety net."
   },
   "NAME_HOUSING_TYPE": {
     "display_name": "Housing Classification",
-    "reason": "Renting or living with parents presents different fixed-cost liabilities compared to homeownership.",
-    "action": "Verify that your monthly housing liabilities are low."
+    "risk_reason": "Renting or living with parents presents different fixed-cost liabilities compared to homeownership.",
+    "risk_action": "Verify that your monthly housing liabilities are low.",
+    "protective_reason": "Your housing classification indicates minimal external fixed-cost liabilities or strong homeownership stability.",
+    "protective_action": "Secure housing arrangements significantly bolster your overall financial health score."
   },
   "DAYS_BIRTH": {
     "display_name": "Age-to-Term Ratio",
-    "reason": "Statistical models weigh your age against loan tenure to ensure repayment capacity over time.",
-    "action": "Opt for a shorter loan repayment period."
+    "risk_reason": "Statistical models weigh your age against loan tenure to ensure repayment capacity over time.",
+    "risk_action": "Opt for a shorter loan repayment period.",
+    "protective_reason": "Your age and demographic profile align perfectly with the requested loan tenure.",
+    "protective_action": "This optimal age-to-term ratio ensures sufficient time and capacity for successful repayment."
   },
   "AGE_YEARS": {
     "display_name": "Age-to-Term Ratio",
-    "reason": "Statistical models weigh your age against loan tenure to ensure repayment capacity over time.",
-    "action": "Opt for a shorter loan repayment period."
+    "risk_reason": "Statistical models weigh your age against loan tenure to ensure repayment capacity over time.",
+    "risk_action": "Opt for a shorter loan repayment period.",
+    "protective_reason": "Your age and demographic profile align perfectly with the requested loan tenure.",
+    "protective_action": "This optimal age-to-term ratio ensures sufficient time and capacity for successful repayment."
   },
   "DAYS_EMPLOYED": {
     "display_name": "Job Tenure Stability",
-    "reason": "The length of time at your current employer affects your income reliability score.",
-    "action": "Provide a guarantor or wait until you have crossed the 1-year mark at your current job."
+    "risk_reason": "The length of time at your current employer affects your income reliability score.",
+    "risk_action": "Provide a guarantor or wait until you have crossed the 1-year mark at your current job.",
+    "protective_reason": "You have a proven track record of long-term employment with your current organization.",
+    "protective_action": "Income stability is highly valued by our model and secured your favorable outcome."
   },
   "YEARS_EMPLOYED": {
     "display_name": "Job Tenure Stability",
-    "reason": "The length of time at your current employer affects your income reliability score.",
-    "action": "Provide a guarantor or wait until you have crossed the 1-year mark at your current job."
+    "risk_reason": "The length of time at your current employer affects your income reliability score.",
+    "risk_action": "Provide a guarantor or wait until you have crossed the 1-year mark at your current job.",
+    "protective_reason": "You have a proven track record of long-term employment with your current organization.",
+    "protective_action": "Income stability is highly valued by our model and secured your favorable outcome."
   },
   "FLAG_MOBIL": {
     "display_name": "Contact Verification (Mobile)",
-    "reason": "Lack of reachable mobile contact details triggers automated fraud and stability alerts.",
-    "action": "Ensure a valid, reachable mobile number is provided."
+    "risk_reason": "Lack of reachable mobile contact details triggers automated fraud and stability alerts.",
+    "risk_action": "Ensure a valid, reachable mobile number is provided.",
+    "protective_reason": "Your primary mobile contact details were successfully verified.",
+    "protective_action": "Clear contact verification instantly builds trust with automated fraud-prevention systems."
   },
   "FLAG_EMP_PHONE": {
     "display_name": "Contact Verification (Employer)",
-    "reason": "Inability to verify employer contact details flags potential employment fabrication.",
-    "action": "Provide an official HR or employer phone number for verification."
+    "risk_reason": "Inability to verify employer contact details flags potential employment fabrication.",
+    "risk_action": "Provide an official HR or employer phone number for verification.",
+    "protective_reason": "Your employer contact details were provided and verified.",
+    "protective_action": "Verifiable employment details drastically reduce statistical fraud risk."
   },
   "FLAG_WORK_PHONE": {
     "display_name": "Contact Verification (Work)",
-    "reason": "Work phone verification is a standard requirement for stable employment profiles.",
-    "action": "Ensure your workplace contact information is accurate and reachable."
+    "risk_reason": "Work phone verification is a standard requirement for stable employment profiles.",
+    "risk_action": "Ensure your workplace contact information is accurate and reachable.",
+    "protective_reason": "Your direct workplace contact details were successfully provided.",
+    "protective_action": "Complete employment contact profiles are associated with reliable borrowers."
   },
   "FLAG_CONT_MOBILE": {
     "display_name": "Mobile Reachability",
-    "reason": "If the primary mobile phone is unreachable, it raises immediate collection risk flags.",
-    "action": "Provide an active and frequently monitored mobile number."
+    "risk_reason": "If the primary mobile phone is unreachable, it raises immediate collection risk flags.",
+    "risk_action": "Provide an active and frequently monitored mobile number.",
+    "protective_reason": "Your mobile network reachability status is active and verified.",
+    "protective_action": "Active network statuses ensure reliable communication, reducing risk scores."
   },
   "FLAG_PHONE": {
     "display_name": "Contact Verification (Home)",
-    "reason": "A registered home landline serves as an indicator of geographic stability.",
-    "action": "No direct action required, but adding a home phone can marginally improve stability scores."
+    "risk_reason": "A registered home landline serves as an indicator of geographic stability.",
+    "risk_action": "No direct action required, but adding a home phone can marginally improve stability scores.",
+    "protective_reason": "You provided a registered home landline, which acts as a geographic anchor.",
+    "protective_action": "Home landlines are traditional markers of long-term settlement and stability."
   },
   "FLAG_EMAIL": {
     "display_name": "Digital Communication Verification",
-    "reason": "Lack of an active email address can indicate a disconnected or non-standard digital footprint.",
-    "action": "Provide an active email address for official bank correspondence."
+    "risk_reason": "Lack of an active email address can indicate a disconnected or non-standard digital footprint.",
+    "risk_action": "Provide an active email address for official bank correspondence.",
+    "protective_reason": "Your digital communication footprint is verified and standard.",
+    "protective_action": "A standard digital footprint aligns with modern, low-risk banking profiles."
   },
   "OCCUPATION_TYPE": {
     "display_name": "Job Title / Occupation",
-    "reason": "Certain job roles have higher historical turnover or seasonal income volatility.",
-    "action": "Provide permanent employment contracts rather than probationary agreements."
+    "risk_reason": "Certain job roles have higher historical turnover or seasonal income volatility.",
+    "risk_action": "Provide permanent employment contracts rather than probationary agreements.",
+    "protective_reason": "Your occupation is recognized for low turnover and high economic resilience.",
+    "protective_action": "Working in a historically stable role greatly enhanced your employment reliability score."
   },
   "ORGANIZATION_TYPE": {
     "display_name": "Industry / Organization Type",
-    "reason": "Your current employment sector historically shows higher economic sensitivity or turnover rates.",
-    "action": "Provide proof of long-term employment within this specific industry."
+    "risk_reason": "Your current employment sector historically shows higher economic sensitivity or turnover rates.",
+    "risk_action": "Provide proof of long-term employment within this specific industry.",
+    "protective_reason": "Your industry is recognized for robust economic performance and job security.",
+    "protective_action": "Employment in a resilient sector acts as a strong buffer against economic downturns."
   },
   "DAYS_LAST_PHONE_CHANGE": {
     "display_name": "Contact Information Volatility",
-    "reason": "Recent changes to primary contact information prior to an application trigger statistical fraud risk indicators.",
-    "action": "Explain the recent number change or provide secondary identity verification documents."
+    "risk_reason": "Recent changes to primary contact information prior to an application trigger statistical fraud risk indicators.",
+    "risk_action": "Explain the recent number change or provide secondary identity verification documents.",
+    "protective_reason": "Consistent, long-term retention of primary contact information indicates lifestyle stability.",
+    "protective_action": "Avoiding recent contact changes helps bypass automated fraud and volatility filters."
   },
   "REG_REGION_NOT_LIVE_REGION": {
     "display_name": "Geographic Discrepancy (Region/Live)",
-    "reason": "Discrepancies between registered permanent address and living address flag potential instability.",
-    "action": "Provide recent utility bills to clarify your primary residence."
+    "risk_reason": "Discrepancies between registered permanent address and living address flag potential instability.",
+    "risk_action": "Provide recent utility bills to clarify your primary residence.",
+    "protective_reason": "Your registered region perfectly matches your actual living region.",
+    "protective_action": "Geographic consistency confirms your settlement stability and speeds up automated approvals."
   },
   "REG_REGION_NOT_WORK_REGION": {
     "display_name": "Geographic Discrepancy (Region/Work)",
-    "reason": "Working in a completely different region than registered residence raises verification flags.",
-    "action": "Provide employer documentation confirming your remote work or relocation status."
+    "risk_reason": "Working in a completely different region than registered residence raises verification flags.",
+    "risk_action": "Provide employer documentation confirming your remote work or relocation status.",
+    "protective_reason": "Your registered residence aligns geographically with your workplace.",
+    "protective_action": "Local employment reduces commuting stress and strengthens regional stability profiles."
   },
   "LIVE_REGION_NOT_WORK_REGION": {
     "display_name": "Geographic Discrepancy (Live/Work)",
-    "reason": "Commuting or living in a different state than your employer can indicate temporary settlement.",
-    "action": "Clarify your living and working arrangements with the loan officer."
+    "risk_reason": "Commuting or living in a different state than your employer can indicate temporary settlement.",
+    "risk_action": "Clarify your living and working arrangements with the loan officer.",
+    "protective_reason": "Your living location and working location are within the same regional bounds.",
+    "protective_action": "Geographic harmony between home and work lowers the risk of lifestyle volatility."
   },
   "REG_CITY_NOT_LIVE_CITY": {
     "display_name": "Address Discrepancy (City/Live)",
-    "reason": "Differences between your registered ID city and actual living city trigger basic verification alerts.",
-    "action": "Provide a current lease agreement or utility bill for your living address."
+    "risk_reason": "Differences between your registered ID city and actual living city trigger basic verification alerts.",
+    "risk_action": "Provide a current lease agreement or utility bill for your living address.",
+    "protective_reason": "Your registered ID address perfectly matches your current living address.",
+    "protective_action": "Transparent and verified residential records are fundamental to a strong approval rating."
   },
   "REG_CITY_NOT_WORK_CITY": {
     "display_name": "Address Discrepancy (City/Work)",
-    "reason": "Living in a different city than your employer requires additional transit/expense verification.",
-    "action": "Ensure your reported income accounts for potential heavy commuting expenses."
+    "risk_reason": "Living in a different city than your employer requires additional transit/expense verification.",
+    "risk_action": "Ensure your reported income accounts for potential heavy commuting expenses.",
+    "protective_reason": "Your registered city matches the city where your employer is located.",
+    "protective_action": "Local employment signifies deeper community ties and greater financial predictability."
   },
   "LIVE_CITY_NOT_WORK_CITY": {
     "display_name": "Address Discrepancy (Live/Work)",
-    "reason": "Living in a different city than your workplace flags potential lifestyle instability.",
-    "action": "Clarify daily commuting or remote work arrangements."
+    "risk_reason": "Living in a different city than your workplace flags potential lifestyle instability.",
+    "risk_action": "Clarify daily commuting or remote work arrangements.",
+    "protective_reason": "Your daily living location perfectly matches your workplace city.",
+    "protective_action": "Eliminating inter-city commuting variables solidifies your financial expense estimates."
   },
   "FONDKAPREMONT_MODE": {
     "display_name": "Housing Infrastructure (Fund)",
-    "reason": "The quality and fund status of your housing infrastructure influence estimated living liabilities.",
-    "action": "Confirm that your residence does not require emergency capital repairs."
+    "risk_reason": "The quality and fund status of your housing infrastructure influence estimated living liabilities.",
+    "risk_action": "Confirm that your residence does not require emergency capital repairs.",
+    "protective_reason": "Your housing infrastructure data points to a secure, well-maintained living environment.",
+    "protective_action": "Good housing infrastructure acts as a strong proxy for socioeconomic stability."
   },
   "HOUSETYPE_MODE": {
     "display_name": "Housing Infrastructure (Type)",
-    "reason": "Specific types of housing correlate with differing long-term maintenance costs.",
-    "action": "Ensure housing maintenance costs do not overwhelm your reported income."
+    "risk_reason": "Specific types of housing correlate with differing long-term maintenance costs.",
+    "risk_action": "Ensure housing maintenance costs do not overwhelm your reported income.",
+    "protective_reason": "Your specific housing type correlates historically with low maintenance and high stability.",
+    "protective_action": "Stable housing types decrease unpredictable expense risks for the borrower."
   },
   "WALLSMATERIAL_MODE": {
     "display_name": "Housing Infrastructure (Material)",
-    "reason": "Building materials act as a proxy for socioeconomic regional stability.",
-    "action": "This is a minor geographic baseline factor; no direct action is required."
+    "risk_reason": "Building materials act as a proxy for socioeconomic regional stability.",
+    "risk_action": "This is a minor geographic baseline factor; no direct action is required.",
+    "protective_reason": "The building materials of your residence indicate a standard, stable socioeconomic region.",
+    "protective_action": "Regional infrastructural stability provides a solid foundational score for your profile."
   },
   "EMERGENCYSTATE_MODE": {
     "display_name": "Housing Infrastructure (Emergency)",
-    "reason": "Living in a building declared in an emergency state flags severe socioeconomic risk.",
-    "action": "Provide proof of impending relocation or secure housing."
+    "risk_reason": "Living in a building declared in an emergency state flags severe socioeconomic risk.",
+    "risk_action": "Provide proof of impending relocation or secure housing.",
+    "protective_reason": "Your residence is confirmed to be in a structurally sound and safe condition.",
+    "protective_action": "Avoiding emergency infrastructure flags keeps your baseline risk profile extremely clean."
   },
   "OBS_30_CNT_SOCIAL_CIRCLE": {
     "display_name": "Social Network Risk (Observable)",
-    "reason": "High levels of observable financial distress in your immediate social circle elevate localized risk.",
-    "action": "Maintain a strong, independent financial history isolated from local economic downturns."
+    "risk_reason": "High levels of observable financial distress in your immediate social circle elevate localized risk.",
+    "risk_action": "Maintain a strong, independent financial history isolated from local economic downturns.",
+    "protective_reason": "Your immediate social and regional circle shows excellent financial health.",
+    "protective_action": "A stable surrounding network acts as a great indicator of a secure, low-risk financial environment."
   },
   "DEF_30_CNT_SOCIAL_CIRCLE": {
     "display_name": "Social Network 30-Day Defaults",
-    "reason": "Defaults within your immediate social or regional circle elevate localized demographic profiles.",
-    "action": "Provide strong independent financial statements to separate your risk from your network."
+    "risk_reason": "Defaults within your immediate social or regional circle elevate localized demographic profiles.",
+    "risk_action": "Provide strong independent financial statements to separate your risk from your network.",
+    "protective_reason": "Your immediate social circle demonstrates zero recent 30-day defaults.",
+    "protective_action": "A localized network free of short-term defaults strongly supports your reliability score."
   },
   "DEF_60_CNT_SOCIAL_CIRCLE": {
     "display_name": "Social Network 60-Day Defaults",
-    "reason": "Severe 60-day defaults within your social circle act as a strong localized risk indicator.",
-    "action": "Ensure you have zero joint accounts or shared liabilities with defaulted individuals."
+    "risk_reason": "Severe 60-day defaults within your social circle act as a strong localized risk indicator.",
+    "risk_action": "Ensure you have zero joint accounts or shared liabilities with defaulted individuals.",
+    "protective_reason": "Your immediate social circle demonstrates zero severe 60-day defaults.",
+    "protective_action": "A localized network free of long-term defaults ensures your profile is untainted by external risk."
   }
 }

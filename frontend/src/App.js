@@ -488,43 +488,78 @@ function App() {
                       )}
                     </Col>
                   </Row>
+                  {/* DYNAMIC DUAL-THEMED INSIGHTS SECTION */}
+                  {/* DYNAMIC DUAL-THEMED INSIGHTS SECTION */}
                   <Row className="mb-5">
                     <Col xs={12}>
+                      {/* Change header to be a bit more neutral since it now contains mixed factors */}
                       <h4 className="fw-bold text-slate mb-3">
-                        Actionable Insights
+                        {finalDecision === 'Approve'
+                          ? 'Key Profile Factors'
+                          : 'Actionable Insights for Improvement'}
                       </h4>
+
                       <Row>
                         {result.recommendations &&
-                          result.recommendations.map((rec, index) => (
-                            <Col md={6} key={index}>
-                              <div
-                                className={`p-3 rounded-3 mb-3 border-start border-4 shadow-sm h-100 ${rec.effect > 0 ? 'bg-danger bg-opacity-10 border-danger' : 'bg-success bg-opacity-10 border-success'}`}
-                              >
-                                <strong className="d-block text-dark mb-1">
-                                  {rec.feature_name}
-                                </strong>
-                                <p className="mb-2 small text-muted-custom">
-                                  {rec.reason}
-                                </p>
-                                <div className="bg-white p-2 rounded border small">
-                                  <span className="fw-bold text-slate">
-                                    Action:{' '}
-                                  </span>
-                                  {rec.action}
+                          result.recommendations.map((rec, index) => {
+                            // FIX: Determine styling based on individual effect, not overall decision
+                            const isProtective = rec.effect < 0;
+
+                            return (
+                              <Col md={6} key={index}>
+                                <div
+                                  className="p-3 rounded-3 mb-3 shadow-sm h-100"
+                                  style={{
+                                    backgroundColor: isProtective
+                                      ? 'var(--color-accent-light)'
+                                      : '#fce8e8',
+                                    borderLeft: isProtective
+                                      ? '4px solid #3d9a6e'
+                                      : '4px solid #ef4444',
+                                  }}
+                                >
+                                  <strong className="d-block text-dark mb-1">
+                                    {rec.feature_name}
+                                  </strong>
+                                  <p className="mb-2 small text-muted-custom">
+                                    {rec.reason}
+                                  </p>
+                                  <div className="bg-white p-2 rounded border small">
+                                    {/* Dynamically alter the text prefix */}
+                                    <span
+                                      className={`fw-bold ${isProtective ? 'text-slate' : 'text-danger'}`}
+                                    >
+                                      {isProtective
+                                        ? 'Positive Impact: '
+                                        : 'Risk Factor: '}
+                                    </span>
+                                    <span className="text-muted-custom">
+                                      {' '}
+                                      {rec.action}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            </Col>
-                          ))}
+                              </Col>
+                            );
+                          })}
                       </Row>
                     </Col>
                   </Row>
+
+                  {/* DYNAMIC DUAL-THEMED XAI CHART SECTION  */}
                   {result.shap_log && result.shap_log.length > 0 && (
                     <Row className="mt-5 pt-3">
                       <Col xs={12}>
                         <h4 className="fw-bold text-slate mb-3">
-                          AI Feature Importance
+                          {finalDecision === 'Approve'
+                            ? 'AI Approval Confidence'
+                            : 'AI Risk Feature Importance'}
                         </h4>
-                        <XaiChart data={result.shap_log} />
+                        <XaiChart
+                          data={result.shap_log}
+                          decision={finalDecision}
+                          recommendations={result.recommendations} // <-- Add this line
+                        />
                       </Col>
                     </Row>
                   )}

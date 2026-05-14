@@ -16,13 +16,12 @@ const Login = ({ switchToRegister }) => {
 
     const result = await login(email, password);
     if (!result.success) {
-      // --- SAFE ERROR PARSER ---
       let errMsg = 'An unexpected error occurred.';
       if (typeof result.error === 'string') {
         errMsg = result.error;
       } else if (result.error?.detail) {
         if (Array.isArray(result.error.detail)) {
-          errMsg = result.error.detail[0].msg; // Catches FastAPI 422 arrays
+          errMsg = result.error.detail[0].msg;
         } else {
           errMsg = result.error.detail;
         }

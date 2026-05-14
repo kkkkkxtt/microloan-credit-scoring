@@ -33,166 +33,97 @@ def load_ml_assets():
     explainer = shap.TreeExplainer(model)
 
 def process_prediction(raw_input: dict) -> dict:
-    applicant_ic = raw_input.get('applicant_ic', 'UNKNOWN')
+    if model is None:
+        load_ml_assets()
+
+    applicant_ic = raw_input.get("applicant_ic", "UNKNOWN")
     
-    # 1. Create a blank DataFrame with all expected features set to 0.0
-    df_input = pd.DataFrame(0.0, index=[0], columns=expected_features)
+    # Prepare data
+    input_df = pd.DataFrame([raw_input])
     
-    # 2. Map Numerical Features
-    for key, value in raw_input.items():
-        if key in expected_features and isinstance(value, (int, float)):
-            df_input.at[0, key] = float(value)
+    # Ensure all expected features are present (Fallback safety)
+    for col in expected_features:
+        if col not in input_df.columns:
+            input_df[col] = 0
             
-    # 3. Dynamic One-Hot Encoding for Categorical Features
-    categorical_columns = ['CODE_GENDER', 'NAME_EDUCATION_TYPE', 'NAME_FAMILY_STATUS', 'NAME_HOUSING_TYPE', 
-                           'NAME_INCOME_TYPE', 'OCCUPATION_TYPE', 'ORGANIZATION_TYPE', 'NAME_CONTRACT_TYPE',
-                           'HOUSETYPE_MODE', 'WALLSMATERIAL_MODE', 'FONDKAPREMONT_MODE', 'EMERGENCYSTATE_MODE']
+    input_df = input_df[expected_features]
     
-    for cat_col in categorical_columns:
-        if cat_col in raw_input:
-            val = raw_input[cat_col]
-            if isinstance(val, list):
-                for v in val:
-                    encoded_col_name = f"{cat_col}_{v}"
-                    if encoded_col_name in expected_features:
-                        df_input.at[0, encoded_col_name] = 1.0
-            else:
-                encoded_col_name = f"{cat_col}_{val}"
-                if encoded_col_name in expected_features:
-                    df_input.at[0, encoded_col_name] = 1.0
-                
-    # 4. DOMAIN-SPECIFIC FEATURE ENGINEERING
-    days_birth = abs(float(raw_input.get('DAYS_BIRTH', 10000)))
-    days_employed = abs(float(raw_input.get('DAYS_EMPLOYED', 1000)))
-    age_years = days_birth / 365.25
-    years_employed = days_employed / 365.25
+    # Predict
+    probability = model.predict_proba(input_df)[0][1]
+    decision = "Approve" if probability < optimal_threshold else "Reject"
     
-    if 'AGE_YEARS' in expected_features: df_input.at[0, 'AGE_YEARS'] = age_years
-    if 'YEARS_EMPLOYED' in expected_features: df_input.at[0, 'YEARS_EMPLOYED'] = years_employed
-
-    amt_income = float(raw_input.get('AMT_INCOME_TOTAL', 1)) or 1.0
-    amt_credit = float(raw_input.get('AMT_CREDIT', 1)) or 1.0
-    amt_annuity = float(raw_input.get('AMT_ANNUITY', 1)) or 1.0
-    amt_goods = float(raw_input.get('AMT_GOODS_PRICE', 0))
-
-    if 'ANNUITY_INCOME_PERCENT' in expected_features: 
-        df_input.at[0, 'ANNUITY_INCOME_PERCENT'] = amt_annuity / amt_income
-    if 'CREDIT_INCOME_PERCENT' in expected_features: 
-        df_input.at[0, 'CREDIT_INCOME_PERCENT'] = amt_credit / amt_income
-    if 'CREDIT_TERM' in expected_features: 
-        df_input.at[0, 'CREDIT_TERM'] = amt_credit / amt_annuity
-    if 'EMPLOYED_AGE_PERCENT' in expected_features: 
-        df_input.at[0, 'EMPLOYED_AGE_PERCENT'] = years_employed / age_years if age_years > 0 else 0
-    if 'GOODS_CREDIT_PERCENT' in expected_features: 
-        df_input.at[0, 'GOODS_CREDIT_PERCENT'] = amt_goods / amt_credit
-
-    # -------------------------------------------------------------
-    # STEP 4.5: HARD BUSINESS GUARDRAILS (Anti-Garbage Inputs)
-    # -------------------------------------------------------------
-    age_years = abs(raw_input.get('DAYS_BIRTH', 0)) / 365.25
-    credit_requested = float(raw_input.get('AMT_CREDIT', 0))
-    annual_income = float(raw_input.get('AMT_INCOME_TOTAL', 0))
-
-    business_rejection_reason = None
-
-    # Rule A: Financial & Age limits
-    if age_years < 18:
-        business_rejection_reason = "Applicant is a minor (Under 18)."
-    elif annual_income < 1000:
-        business_rejection_reason = "Verifiable income is below minimum threshold."
-    elif credit_requested > (annual_income * 20):
-        business_rejection_reason = "Requested credit wildly exceeds acceptable debt-to-income limits."
-
-    # Rule B: Contact Verification
-    has_contact = any([
-        int(raw_input.get('FLAG_EMAIL', 0)) == 1,
-        int(raw_input.get('FLAG_MOBIL', 0)) == 1,
-        int(raw_input.get('FLAG_PHONE', 0)) == 1,
-        int(raw_input.get('FLAG_CONT_MOBILE', 0)) == 1,
-        int(raw_input.get('FLAG_WORK_PHONE', 0)) == 1,
-        int(raw_input.get('FLAG_EMP_PHONE', 0)) == 1
-    ])
-    if not has_contact:
-        business_rejection_reason = "Critical: No verifiable contact information provided."
-
-    # Rule C: Geographic Fraud
-    geo_risk_score = sum([
-        int(raw_input.get('REG_CITY_NOT_LIVE_CITY', 0)),
-        int(raw_input.get('REG_CITY_NOT_WORK_CITY', 0)),
-        int(raw_input.get('LIVE_CITY_NOT_WORK_CITY', 0)),
-        int(raw_input.get('REG_REGION_NOT_LIVE_REGION', 0)),
-        int(raw_input.get('REG_REGION_NOT_WORK_REGION', 0)),
-        int(raw_input.get('LIVE_REGION_NOT_WORK_REGION', 0))
-    ])
-    if geo_risk_score >= 4: 
-        business_rejection_reason = "Critical: Severe geographic discrepancies detected across registered profiles."
-
-    if business_rejection_reason:
-        return {
-            "applicant_ic": applicant_ic,
-            "status": "success",
-            "risk_probability": 0.99,
-            "decision": "Reject",
-            "threshold_used": optimal_threshold,
-            "recommendations": [{
-                "feature_name": "Automated Business Rule",
-                "reason": business_rejection_reason,
-                "action": "Application violates core lending parameters. Do not proceed.",
-                "effect": 1.0
-            }],
-            "dynamic_explanation": f"Auto-Rejected: {business_rejection_reason}",
-            "raw_features_log": raw_input,
-            "shap_log": [{"feature": "BUSINESS_RULE_VIOLATION", "effect": 1.0}]
-        }
-
-    # -------------------------------------------------------------
-    # 5. Make ML Prediction
-    # -------------------------------------------------------------
-    probability = model.predict_proba(df_input)[0, 1]
+    # SHAP Explanation
+    shap_values = explainer(input_df)
     
-    # Use the mathematically optimal threshold from training (fallback to 0.50)
-    actual_threshold = optimal_threshold if optimal_threshold else 0.50
+    # Extract feature importance
+    feature_importance = pd.DataFrame({
+        'feature': expected_features,
+        'effect': shap_values.values[0]
+    })
     
-    is_rejected = bool(probability >= actual_threshold)
-    decision = "Reject" if is_rejected else "Approve"
-    
-    # 6. Generate XAI (SHAP)
-    shap_values = explainer.shap_values(df_input)
-    shap_values_single = shap_values[1][0] if isinstance(shap_values, list) else shap_values[0]
-        
-    shap_df = pd.DataFrame({'Feature': expected_features, 'SHAP_Impact': shap_values_single})
-    top_risk_factors = shap_df.sort_values(by='SHAP_Impact', ascending=False).head(4)
-    
-    recommendations = []
+    # --- FIX 1: Generate full explanations log for the frontend category chart BEFORE filtering ---
     explanations_log = []
     
-    dict_keys_sorted = sorted(xai_dictionary.keys(), key=len, reverse=True)
-    
-    for _, row in top_risk_factors.iterrows():
-        raw_feature = row['Feature']
-        effect = row['SHAP_Impact']
+    for _, row in feature_importance.iterrows():
+        raw_feature = row['feature']
+        effect = float(row['effect'])
         
+        # Match the dictionary key (handling One-Hot Encoded prefixes)
         dict_key = raw_feature
-        if dict_key not in xai_dictionary:
-            for key in dict_keys_sorted:
-                if raw_feature.startswith(key):
-                    dict_key = key
-                    break
+        for prefix in ['NAME_INCOME_TYPE_', 'NAME_EDUCATION_TYPE_', 'NAME_FAMILY_STATUS_', 'NAME_HOUSING_TYPE_', 'OCCUPATION_TYPE_', 'ORGANIZATION_TYPE_']:
+            if raw_feature.startswith(prefix):
+                dict_key = prefix[:-1]
+                break
+                
+        dict_entry = xai_dictionary.get(dict_key, {})
         
-        translation = xai_dictionary.get(dict_key, {
-            "display_name": raw_feature.replace('_', ' ').title(),
-            "reason": "This specific metric deviated from standard safety thresholds.",
-            "action": "Discuss this metric with a verified loan officer."
+        explanations_log.append({
+            "feature": raw_feature,
+            "effect": effect,
+            "display_name": dict_entry.get("display_name", raw_feature.replace('_', ' ').title()),
+            "risk_reason": dict_entry.get("risk_reason", "This metric deviated from standard safety thresholds and increased risk."),
+            "protective_reason": dict_entry.get("protective_reason", "This factor contributed positively to your application.")
         })
+
+# --- FIX: UNIFIED ABSOLUTE SORTING ---
+    # Sort by absolute magnitude to find the true top influential factors overall
+    feature_importance['abs_effect'] = feature_importance['effect'].abs()
+    
+    # Grab the top 4 most impactful features regardless of direction
+    top_features = feature_importance.sort_values(by='abs_effect', ascending=False).head(4)[['feature', 'effect']].values
+        
+    recommendations = []
+    
+    for raw_feature, effect in top_features:
+        dict_key = raw_feature
+        # Handle One-Hot Encoded prefixes
+        for prefix in ['NAME_INCOME_TYPE_', 'NAME_EDUCATION_TYPE_', 'NAME_FAMILY_STATUS_', 'NAME_HOUSING_TYPE_', 'OCCUPATION_TYPE_', 'ORGANIZATION_TYPE_']:
+            if raw_feature.startswith(prefix):
+                dict_key = prefix[:-1]
+                break
+        
+        # Fetch the feature dictionary entry (or an empty dict if not found)
+        dict_entry = xai_dictionary.get(dict_key, {})
+        display_name = dict_entry.get("display_name", raw_feature.replace('_', ' ').title())
+        
+        # --- DUAL-SIDED LOGIC ---
+        if float(effect) > 0:
+            # RISK FACTOR (Pushes model towards rejection)
+            reason = dict_entry.get("risk_reason", "This specific metric deviated from standard safety thresholds and increased risk.")
+            action = dict_entry.get("risk_action", "Review this financial metric or discuss with a loan officer.")
+        else:
+            # PROTECTIVE FACTOR (Pushes model towards approval)
+            reason = dict_entry.get("protective_reason", "This metric showed strong alignment with historically successful repayments.")
+            action = dict_entry.get("protective_action", "Maintain this standard to keep a strong financial profile.")
         
         recommendations.append({
-            "feature_name": translation["display_name"],
-            "reason": translation["reason"],
-            "action": translation["action"],
+            "feature_name": display_name,
+            "reason": reason,
+            "action": action,
             "effect": float(effect)
         })
         
-        explanations_log.append({"feature": raw_feature, "effect": float(effect)})
+        # (Removed the explanations_log.append() from here since we built it above)
         
     if decision == "Approve":
         dynamic_explanation = "Your risk profile is acceptable. Your data strongly aligns with historical successful repayments."

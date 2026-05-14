@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
+from datetime import date
 
 # ---- REQUEST SCHEMAS (From React to FastAPI) ----
 class UserCreate(BaseModel):
@@ -18,7 +19,7 @@ class UserProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None       
     password: Optional[str] = None         
     gender: Optional[str] = None
-    date_of_birth: Optional[str] = None
+    date_of_birth: Optional[date] = None
     annual_income: Optional[float] = None
     phone_number: Optional[str] = None
     position: Optional[str] = None         
@@ -26,7 +27,7 @@ class UserProfileUpdate(BaseModel):
 
 class UserProfileResponse(BaseModel):
     gender: Optional[str] = None
-    date_of_birth: Optional[str] = None
+    date_of_birth: Optional[date] = None
     annual_income: Optional[float] = None
     phone_number: Optional[str] = None
     position: Optional[str] = None         

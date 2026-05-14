@@ -12,24 +12,7 @@ import {
   Legend,
 } from 'recharts';
 import { Row, Col } from 'react-bootstrap';
-import xaiDictionary from '../data/xaiDictionary.json';
 
-// 1. Helper for the Left Chart Tooltip
-const getFeatureDetails = (rawFeature) => {
-  const keys = Object.keys(xaiDictionary).sort((a, b) => b.length - a.length);
-  for (let key of keys) {
-    if (rawFeature.startsWith(key)) return xaiDictionary[key];
-  }
-  const formattedName = rawFeature
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-  return {
-    name: formattedName,
-    reason: 'This metric deviated from standard safety thresholds.',
-  };
-};
-
-// 2. NEW: Helper to group raw features into logical business categories
 const getCategory = (rawFeature) => {
   const f = rawFeature.toUpperCase();
   if (
@@ -66,11 +49,10 @@ const getCategory = (rawFeature) => {
     f.includes('FOND')
   )
     return 'Assets & Housing';
-  return 'Demographics'; // Age, Gender, Children, Region, Family, Education
+  return 'Demographics';
 };
 
 const XaiChart = ({ data }) => {
-  // --- ADD THIS SAFETY CHECK ---
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
       <div className="text-center p-4 text-muted-custom">
@@ -78,14 +60,11 @@ const XaiChart = ({ data }) => {
       </div>
     );
   }
-  // -----------------------------
 
-  // Data for Chart 1: Feature Impact Breakdown (Left)
-  const sortedData = [...data].sort(
-    (a, b) => Math.abs(b.effect) - Math.abs(a.effect),
-  );
+  const sortedData = [...data]
+    .sort((a, b) => Math.abs(b.effect) - Math.abs(a.effect))
+    .slice(0, 10);
 
-  // NEW: Data processing for Chart 2: Category Risk Profile (Right)
   const categoryMap = {
     'Financial Health': { category: 'Financial', risk: 0, protective: 0 },
     Employment: { category: 'Employment', risk: 0, protective: 0 },
@@ -103,16 +82,26 @@ const XaiChart = ({ data }) => {
     }
   });
 
-  // Filter out any categories that have zero data to keep the chart clean
   const categoryData = Object.values(categoryMap).filter(
     (c) => c.risk > 0 || c.protective > 0,
   );
 
-  // Tooltip for Chart 1
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const dataPoint = payload[0].payload;
-      const details = getFeatureDetails(dataPoint.feature || dataPoint.name);
+      const effectValue = dataPoint.effect || dataPoint.value;
+      const isProtective = effectValue < 0;
+
+      // Extract translated strings directly from the backend payload!
+      const displayName = dataPoint.display_name || dataPoint.feature;
+      const reason = isProtective
+        ? dataPoint.protective_reason ||
+          'This factor contributed positively to your application.'
+        : dataPoint.risk_reason ||
+          'This metric deviated from standard safety thresholds and increased risk.';
+
+      const impactColor = isProtective ? '#3d9a6e' : '#f87171';
+
       return (
         <div
           style={{
@@ -136,22 +125,17 @@ const XaiChart = ({ data }) => {
               fontSize: '0.88rem',
             }}
           >
-            {details.name}
+            {displayName}
           </strong>
           <div className="mb-2 small">
             <span className="fw-bold text-slate">Impact: </span>
-            <span
-              style={{
-                color: dataPoint.effect > 0 ? '#f87171' : '#3d9a6e',
-                fontWeight: 700,
-              }}
-            >
-              {(dataPoint.effect || dataPoint.value).toFixed(5)}
+            <span style={{ color: impactColor, fontWeight: 700 }}>
+              {effectValue.toFixed(5)}
             </span>
           </div>
           <div className="small text-muted-custom lh-base">
             <span className="fw-bold text-slate">Why: </span>
-            {details.reason}
+            {reason}
           </div>
         </div>
       );
@@ -162,7 +146,6 @@ const XaiChart = ({ data }) => {
   return (
     <div className="mt-2">
       <Row>
-        {/* Graph 1: Feature Impact Breakdown */}
         <Col md={12} lg={7} className="mb-4">
           <div
             style={{
@@ -177,7 +160,7 @@ const XaiChart = ({ data }) => {
               className="fw-bold text-center mb-3 text-slate"
               style={{ fontFamily: 'Fraunces, serif', fontSize: '1rem' }}
             >
-              Feature Impact Breakdown
+              Top Factors Impacting AI Decision
             </h6>
             <div style={{ width: '100%', height: 350 }}>
               <ResponsiveContainer>
@@ -189,7 +172,7 @@ const XaiChart = ({ data }) => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0ede8" />
                   <XAxis type="number" hide />
                   <YAxis
-                    dataKey="feature"
+                    dataKey="display_name" // <-- CHANGE THIS FROM "feature"
                     type="category"
                     width={140}
                     fontSize={11}
@@ -207,7 +190,7 @@ const XaiChart = ({ data }) => {
                     {sortedData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={entry.effect > 0 ? '#f87171' : '#3d9a6e'}
+                        fill={entry.effect < 0 ? '#3d9a6e' : '#f87171'}
                       />
                     ))}
                   </Bar>
@@ -223,7 +206,6 @@ const XaiChart = ({ data }) => {
           </div>
         </Col>
 
-        {/* Graph 2: Category Risk Profile */}
         <Col md={12} lg={5} className="mb-4">
           <div
             style={{
@@ -238,7 +220,7 @@ const XaiChart = ({ data }) => {
               className="fw-bold text-center mb-3 text-slate"
               style={{ fontFamily: 'Fraunces, serif', fontSize: '1rem' }}
             >
-              Risk Profile by Category
+              Aggregate Risk & Protective Forces
             </h6>
             <div style={{ width: '100%', height: 350 }}>
               <ResponsiveContainer>

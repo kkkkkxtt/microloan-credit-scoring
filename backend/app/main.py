@@ -46,15 +46,15 @@ async def startup_event():
 @app.get("/latest-id")
 async def get_latest_id(db: Session = Depends(get_db)):
     try:
-        # Query max numeric application ID using SQLAlchemy
+        # Query max ID using SQLAlchemy
         max_ic = db.query(func.max(cast(ApplicationRecord.application_id, Integer)))\
                    .filter(ApplicationRecord.application_id.op('~')('^[0-9]+$'))\
                    .scalar()
         
-        latest_id = max_ic if max_ic else 0
+        latest_id = max_ic if max_ic else 100000
         return {"latest_id": latest_id + 1}
     except Exception as e:
-        return {"latest_id": 1}
+        return {"latest_id": 100001}
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -63,10 +63,10 @@ async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db)
         
         # Save to Database using the NEW column names from models.py
         new_record = ApplicationRecord(
-            applicant_user_id=current_user.user_id,       # <-- FIXED
-            application_id=result["applicant_ic"],        # <-- FIXED
-            model_probability=result["risk_probability"], # <-- FIXED
-            model_decision=result["decision"],            # <-- FIXED
+            applicant_user_id=current_user.user_id,
+            application_id=result["applicant_ic"],
+            model_probability=result["risk_probability"],
+            model_decision=result["decision"],
             input_features=result["raw_features_log"],
             shap_explanations=result["shap_log"]
         )
@@ -78,11 +78,11 @@ async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db)
         # Attach DB-generated metadata to response for the frontend
         result_to_return = dict(result) if isinstance(result, dict) else {}
         result_to_return.update({
-            'id': new_record.application_record_id,       # <-- FIXED
+            'id': new_record.application_record_id,
             'application_date': new_record.application_created_at.isoformat(),
-            'applicant_ic': new_record.application_id,    # <-- FIXED
+            'applicant_ic': new_record.application_id,
             'risk_probability': float(result.get('risk_probability', new_record.model_probability)),
-            'decision': new_record.model_decision,        # <-- FIXED
+            'decision': new_record.model_decision,
         })
 
         return result_to_return
@@ -114,16 +114,13 @@ async def get_applicant_history(ic: str, db: Session = Depends(get_db), current_
         
         for row in records:
             features = row.input_features or {}
-            shap_log = row.shap_explanations or []
-            rebuilt_recommendations = []
-
-            try:
-                parsed_reviews = json.loads(row.officer_justification) if row.officer_justification and row.officer_justification.startswith("[") else []
-            except:
-                parsed_reviews = []
-
-            for item in shap_log[:4]: 
+            raw_shap_log = row.shap_explanations or []
+            
+            # --- Inject Dictionary Text into Historical SHAP Logs ---
+            shap_log = []
+            for item in raw_shap_log:
                 raw_feature = item.get("feature", "")
+                effect = float(item.get("effect", 0.0))
                 
                 dict_key = raw_feature
                 if dict_key not in xai_dictionary:
@@ -132,17 +129,58 @@ async def get_applicant_history(ic: str, db: Session = Depends(get_db), current_
                             dict_key = key
                             break
                             
-                translation = xai_dictionary.get(dict_key, {
-                    "display_name": raw_feature.replace('_', ' ').title(),
-                    "reason": "This specific metric deviated from standard safety thresholds.",
-                    "action": "Discuss this metric with a verified loan officer."
+                dict_entry = xai_dictionary.get(dict_key, {})
+                
+                shap_log.append({
+                    "feature": raw_feature,
+                    "effect": effect,
+                    # Fallback to item.get() in case it was saved with the new predict.py logic
+                    "display_name": item.get("display_name") or dict_entry.get("display_name", raw_feature.replace('_', ' ').title()),
+                    "risk_reason": item.get("risk_reason") or dict_entry.get("risk_reason", "This metric deviated from standard safety thresholds and increased risk."),
+                    "protective_reason": item.get("protective_reason") or dict_entry.get("protective_reason", "This factor contributed positively to your application.")
                 })
+
+            rebuilt_recommendations = []
+
+            try:
+                parsed_reviews = json.loads(row.officer_justification) if row.officer_justification and row.officer_justification.startswith("[") else []
+            except:
+                parsed_reviews = []
+
+            # Check the overall decision for this specific historical record
+            is_approved = row.model_decision == "Approve"
+
+            # --- FIX: SORT HISTORY BY ABSOLUTE IMPACT ---
+            # Ensure we grab the top 4 most powerful features, exactly like predict.py
+            sorted_shap = sorted(shap_log, key=lambda x: abs(float(x.get("effect", 0))), reverse=True)
+
+            for item in sorted_shap[:4]:
+                raw_feature = item.get("feature", "")
+                effect_val = float(item.get("effect", 0))
+                
+                dict_key = raw_feature
+                if dict_key not in xai_dictionary:
+                    for key in dict_keys_sorted:
+                        if raw_feature.startswith(key):
+                            dict_key = key
+                            break
+                            
+                dict_entry = xai_dictionary.get(dict_key, {})
+                display_name = dict_entry.get("display_name", raw_feature.replace('_', ' ').title())
+                
+                # --- STRICT THEME CHECK FOR HISTORY RECORDS ---
+                if effect_val > 0: # It's a Risk Factor
+                    reason = dict_entry.get("risk_reason", "This specific metric deviated from standard safety thresholds and increased risk.")
+                    action = dict_entry.get("risk_action", "Review this financial metric or discuss with a loan officer.")
+                else: # It's a Protective Factor
+                    reason = dict_entry.get("protective_reason", "This metric showed strong alignment with historically successful repayments.")
+                    action = dict_entry.get("protective_action", "Maintain this standard to keep a strong financial profile.")
                 
                 rebuilt_recommendations.append({
-                    "feature_name": translation["display_name"],
-                    "reason": translation["reason"],
-                    "action": translation["action"],
-                    "effect": item.get("effect", 0)
+                    "feature_name": display_name,
+                    "reason": reason,
+                    "action": action,
+                    "effect": effect_val
                 })
             
             top_risk = rebuilt_recommendations[0]['feature_name'] if rebuilt_recommendations else 'AI Risk Assessment'
@@ -189,16 +227,13 @@ async def get_my_history(db: Session = Depends(get_db), current_user: User = Dep
         
         for row in records:
             features = row.input_features or {}
-            shap_log = row.shap_explanations or []
-            rebuilt_recommendations = []
-
-            try:
-                parsed_reviews = json.loads(row.officer_justification) if row.officer_justification and row.officer_justification.startswith("[") else []
-            except:
-                parsed_reviews = []
-
-            for item in shap_log[:4]: 
+            raw_shap_log = row.shap_explanations or []
+            
+            # --- Inject Dictionary Text into Historical SHAP Logs ---
+            shap_log = []
+            for item in raw_shap_log:
                 raw_feature = item.get("feature", "")
+                effect = float(item.get("effect", 0.0))
                 
                 dict_key = raw_feature
                 if dict_key not in xai_dictionary:
@@ -207,17 +242,57 @@ async def get_my_history(db: Session = Depends(get_db), current_user: User = Dep
                             dict_key = key
                             break
                             
-                translation = xai_dictionary.get(dict_key, {
-                    "display_name": raw_feature.replace('_', ' ').title(),
-                    "reason": "This specific metric deviated from standard safety thresholds.",
-                    "action": "Discuss this metric with a verified loan officer."
+                dict_entry = xai_dictionary.get(dict_key, {})
+                
+                shap_log.append({
+                    "feature": raw_feature,
+                    "effect": effect,
+                    # Fallback to item.get() in case it was saved with the new predict.py logic
+                    "display_name": item.get("display_name") or dict_entry.get("display_name", raw_feature.replace('_', ' ').title()),
+                    "risk_reason": item.get("risk_reason") or dict_entry.get("risk_reason", "This metric deviated from standard safety thresholds and increased risk."),
+                    "protective_reason": item.get("protective_reason") or dict_entry.get("protective_reason", "This factor contributed positively to your application.")
                 })
+            rebuilt_recommendations = []
+
+            try:
+                parsed_reviews = json.loads(row.officer_justification) if row.officer_justification and row.officer_justification.startswith("[") else []
+            except:
+                parsed_reviews = []
+
+            # Check the overall decision for this specific historical record
+            is_approved = row.model_decision == "Approve"
+
+            # --- FIX: SORT HISTORY BY ABSOLUTE IMPACT ---
+            # Ensure we grab the top 4 most powerful features, exactly like predict.py
+            sorted_shap = sorted(shap_log, key=lambda x: abs(float(x.get("effect", 0))), reverse=True)
+
+            for item in sorted_shap[:4]:
+                raw_feature = item.get("feature", "")
+                effect_val = float(item.get("effect", 0))
+                
+                dict_key = raw_feature
+                if dict_key not in xai_dictionary:
+                    for key in dict_keys_sorted:
+                        if raw_feature.startswith(key):
+                            dict_key = key
+                            break
+                            
+                dict_entry = xai_dictionary.get(dict_key, {})
+                display_name = dict_entry.get("display_name", raw_feature.replace('_', ' ').title())
+                
+                # --- STRICT THEME CHECK FOR HISTORY RECORDS ---
+                if effect_val > 0: # It's a Risk Factor
+                    reason = dict_entry.get("risk_reason", "This specific metric deviated from standard safety thresholds and increased risk.")
+                    action = dict_entry.get("risk_action", "Review this financial metric or discuss with a loan officer.")
+                else: # It's a Protective Factor
+                    reason = dict_entry.get("protective_reason", "This metric showed strong alignment with historically successful repayments.")
+                    action = dict_entry.get("protective_action", "Maintain this standard to keep a strong financial profile.")
                 
                 rebuilt_recommendations.append({
-                    "feature_name": translation["display_name"],
-                    "reason": translation["reason"],
-                    "action": translation["action"],
-                    "effect": item.get("effect", 0)
+                    "feature_name": display_name,
+                    "reason": reason,
+                    "action": action,
+                    "effect": effect_val
                 })
             
             top_risk = rebuilt_recommendations[0]['feature_name'] if rebuilt_recommendations else 'AI Risk Assessment'
@@ -256,7 +331,6 @@ def get_latest_history(db: Session = Depends(get_db)):
         features = row.input_features or {}
         shap_log = row.shap_explanations or []
         
-        # Simple recommendation rebuild for history view
         rebuilt_recommendations = []
         top_risk = "Unknown Risk"
         if shap_log:
