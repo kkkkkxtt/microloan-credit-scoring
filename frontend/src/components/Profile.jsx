@@ -6,6 +6,7 @@ import { CheckCircle, UserCircle, AlertTriangle } from 'lucide-react';
 const Profile = () => {
   const { user, setUser } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
+
   // --- NEW: Unified Toast State ---
   const [toast, setToast] = useState(null);
   const showToast = (msg, type) => {
@@ -72,6 +73,8 @@ const Profile = () => {
         gender: formData.gender === '' ? null : formData.gender,
         position: formData.position === '' ? null : formData.position,
         corporation: formData.corporation === '' ? null : formData.corporation,
+        phone_number:
+          formData.phone_number === '' ? null : formData.phone_number,
       };
 
       // If password is blank, don't send it so we don't accidentally overwrite it
@@ -88,12 +91,18 @@ const Profile = () => {
 
       // Show Success Pop-out
       showToast('Profile updated successfully!', 'success');
+
+      // REPOSITIONING: Smooth scroll to the top of the page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       // Show Error Pop-out
       showToast(
         'Failed to update profile. ' + (error.response?.data?.detail || ''),
         'error',
       );
+
+      // REPOSITIONING: Smooth scroll to the top of the page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     setLoading(false);
   };
@@ -103,7 +112,23 @@ const Profile = () => {
       className="custom-card p-4 p-md-5 mx-auto slide-down"
       style={{ maxWidth: '800px', marginTop: '2vh' }}
     >
-      {/* --- NEW: OVERLAY POP-OUT TOAST --- */}
+      {/* --- INJECT CUSTOM KEYFRAMES FOR THE POP EFFECT --- */}
+      <style>
+        {`
+          @keyframes popOut {
+            0% { 
+              opacity: 0; 
+              transform: translateX(-50%) scale(0.85); 
+            }
+            100% { 
+              opacity: 1; 
+              transform: translateX(-50%) scale(1); 
+            }
+          }
+        `}
+      </style>
+
+      {/* --- OVERLAY POP-OUT TOAST --- */}
       {toast && (
         <div
           style={{
@@ -122,7 +147,9 @@ const Profile = () => {
             alignItems: 'center',
             gap: '10px',
             fontSize: '0.95rem',
-            animation: 'fadeIn 0.3s ease',
+            // FIX: Apply the custom popOut animation defined in the style block above
+            animation:
+              'popOut 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
           }}
         >
           {toast.type === 'success' ? (

@@ -27,6 +27,43 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import ApplicantDashboard from './components/ApplicantDashboard';
 import RecordPage from './components/RecordPage';
 
+//GLOBAL API INTERCEPTOR FOR SESSION MANAGEMENT
+axios.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Check if the error is a 401/403
+    const isAuthError =
+      error.response &&
+      (error.response.status === 401 || error.response.status === 403);
+
+    // FIX: Use Regex to broadly match ANY login, token, or register endpoint
+    const isLoginOrRegister =
+      error.config &&
+      error.config.url &&
+      error.config.url.match(/login|token|register/i);
+
+    // ONLY wipe cache and reload if it's an Auth error AND it's NOT a login/register attempt
+    if (isAuthError && !isLoginOrRegister) {
+      console.warn(
+        'Session invalid or database reset detected. Clearing local cache.',
+      );
+
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('recent_records');
+
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      } else {
+        window.location.reload();
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
 function App() {
   const { user, logout, loading: authLoading } = useContext(AuthContext);
 
@@ -558,7 +595,7 @@ function App() {
                         <XaiChart
                           data={result.shap_log}
                           decision={finalDecision}
-                          recommendations={result.recommendations} // <-- Add this line
+                          recommendations={result.recommendations}
                         />
                       </Col>
                     </Row>

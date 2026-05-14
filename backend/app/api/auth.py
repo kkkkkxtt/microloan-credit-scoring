@@ -101,23 +101,25 @@ def update_profile(
         current_user.profile = UserProfile(user_id=current_user.user_id)
         db.add(current_user.profile)
 
+    # --- FIX: Extract only the fields explicitly sent in the request (including nulls) ---
+    update_data = profile_data.dict(exclude_unset=True)
+
     # 3. Update Demographic & Officer Info
-    if profile_data.gender is not None:
-        current_user.profile.gender = profile_data.gender
-    if profile_data.date_of_birth is not None:
-        current_user.profile.date_of_birth = profile_data.date_of_birth
-    if profile_data.annual_income is not None:
-        current_user.profile.annual_income = profile_data.annual_income
-    if profile_data.phone_number is not None:
-        current_user.profile.phone_number = profile_data.phone_number
+    if 'gender' in update_data:
+        current_user.profile.gender = update_data['gender']
+    if 'date_of_birth' in update_data:
+        current_user.profile.date_of_birth = update_data['date_of_birth']
+    if 'annual_income' in update_data:
+        current_user.profile.annual_income = update_data['annual_income']
+    if 'phone_number' in update_data:
+        current_user.profile.phone_number = update_data['phone_number']
         
-    # --- NEW: Save Officer Data ---
-    if profile_data.position is not None:
-        current_user.profile.position = profile_data.position
-    if profile_data.corporation is not None:
-        current_user.profile.corporation = profile_data.corporation
+    # --- Save Officer Data ---
+    if 'position' in update_data:
+        current_user.profile.position = update_data['position']
+    if 'corporation' in update_data:
+        current_user.profile.corporation = update_data['corporation']
 
     db.commit()
     db.refresh(current_user)
-    
     return current_user

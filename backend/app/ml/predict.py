@@ -61,14 +61,13 @@ def process_prediction(raw_input: dict) -> dict:
         'effect': shap_values.values[0]
     })
     
-    # --- FIX 1: Generate full explanations log for the frontend category chart BEFORE filtering ---
+    # --- ENRICH SHAP LOG WITH DICTIONARY TEXT ---
     explanations_log = []
     
     for _, row in feature_importance.iterrows():
         raw_feature = row['feature']
         effect = float(row['effect'])
         
-        # Match the dictionary key (handling One-Hot Encoded prefixes)
         dict_key = raw_feature
         for prefix in ['NAME_INCOME_TYPE_', 'NAME_EDUCATION_TYPE_', 'NAME_FAMILY_STATUS_', 'NAME_HOUSING_TYPE_', 'OCCUPATION_TYPE_', 'ORGANIZATION_TYPE_']:
             if raw_feature.startswith(prefix):

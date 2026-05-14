@@ -185,7 +185,7 @@ const CreditForm = ({ onSubmit, onCancel }) => {
       const bDate = parseDateSafe(formData.birth_date);
       if (!bDate) {
         newErrors.birth_date =
-          'Please provide a valid Date of Birth (YYYY-MM-DD).';
+          'Please provide a valid Date of Birth (mm/dd/yyyy).';
       } else if (bDate > now) {
         newErrors.birth_date = 'Date of Birth cannot be in the future.';
       } else {
@@ -232,7 +232,7 @@ const CreditForm = ({ onSubmit, onCancel }) => {
         const empDate = parseDateSafe(formData.employed_date);
         if (!empDate)
           newErrors.employed_date =
-            'Please provide a valid employment start date (YYYY-MM-DD).';
+            'Please provide a valid employment start date (mm/dd/yyyy).';
         else if (empDate > now)
           newErrors.employed_date =
             'Employment start date cannot be in the future.';
@@ -708,7 +708,7 @@ const CreditForm = ({ onSubmit, onCancel }) => {
               Review Again
             </button>
             <button className="btn btn-cta" onClick={executeSubmit}>
-              Confirm & Predict
+              Confirm
             </button>
           </div>
         </Modal.Body>

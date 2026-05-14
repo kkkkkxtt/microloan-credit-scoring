@@ -7,7 +7,7 @@ from app.api.deps import get_current_user
 from app.db.models import User
 
 from app.schemas.predict import PredictionRequest, PredictionResponse
-from app.ml.predict import load_ml_assets, process_prediction
+from app.ml.predict import load_ml_assets, process_prediction, xai_dictionary
 
 from app.db.database import SessionLocal, engine 
 from app.db.models import ApplicationRecord, Base
@@ -118,6 +118,8 @@ async def get_applicant_history(ic: str, db: Session = Depends(get_db), current_
             
             # --- Inject Dictionary Text into Historical SHAP Logs ---
             shap_log = []
+            dict_keys_sorted = sorted(xai_dictionary.keys(), key=len, reverse=True) 
+            
             for item in raw_shap_log:
                 raw_feature = item.get("feature", "")
                 effect = float(item.get("effect", 0.0))
@@ -134,7 +136,6 @@ async def get_applicant_history(ic: str, db: Session = Depends(get_db), current_
                 shap_log.append({
                     "feature": raw_feature,
                     "effect": effect,
-                    # Fallback to item.get() in case it was saved with the new predict.py logic
                     "display_name": item.get("display_name") or dict_entry.get("display_name", raw_feature.replace('_', ' ').title()),
                     "risk_reason": item.get("risk_reason") or dict_entry.get("risk_reason", "This metric deviated from standard safety thresholds and increased risk."),
                     "protective_reason": item.get("protective_reason") or dict_entry.get("protective_reason", "This factor contributed positively to your application.")
@@ -231,6 +232,8 @@ async def get_my_history(db: Session = Depends(get_db), current_user: User = Dep
             
             # --- Inject Dictionary Text into Historical SHAP Logs ---
             shap_log = []
+            dict_keys_sorted = sorted(xai_dictionary.keys(), key=len, reverse=True) 
+            
             for item in raw_shap_log:
                 raw_feature = item.get("feature", "")
                 effect = float(item.get("effect", 0.0))
@@ -247,7 +250,6 @@ async def get_my_history(db: Session = Depends(get_db), current_user: User = Dep
                 shap_log.append({
                     "feature": raw_feature,
                     "effect": effect,
-                    # Fallback to item.get() in case it was saved with the new predict.py logic
                     "display_name": item.get("display_name") or dict_entry.get("display_name", raw_feature.replace('_', ' ').title()),
                     "risk_reason": item.get("risk_reason") or dict_entry.get("risk_reason", "This metric deviated from standard safety thresholds and increased risk."),
                     "protective_reason": item.get("protective_reason") or dict_entry.get("protective_reason", "This factor contributed positively to your application.")

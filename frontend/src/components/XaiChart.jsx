@@ -172,7 +172,7 @@ const XaiChart = ({ data }) => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0ede8" />
                   <XAxis type="number" hide />
                   <YAxis
-                    dataKey="display_name" // <-- CHANGE THIS FROM "feature"
+                    dataKey="display_name" // <--- CHANGE THIS FROM "feature"
                     type="category"
                     width={140}
                     fontSize={11}
