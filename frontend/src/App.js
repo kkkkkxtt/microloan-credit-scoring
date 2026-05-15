@@ -942,42 +942,88 @@ function App() {
 
                   {/* --- NEW: Applicant Pagination UI --- */}
                   {totalHistoryPages > 1 && (
-                    <div className="d-flex justify-content-center mt-4 mb-2">
-                      <ul className="pagination pagination-sm shadow-sm m-0">
-                        <li
-                          className={`page-item ${historyPage === 1 ? 'disabled' : ''}`}
+                    <div className="d-flex justify-content-center mt-5 mb-3 fade-in">
+                      <div
+                        className="d-flex align-items-center gap-1 p-1 rounded-pill shadow-sm"
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                        }}
+                      >
+                        <button
+                          className="btn d-flex align-items-center justify-content-center"
+                          onClick={() => setHistoryPage(historyPage - 1)}
+                          disabled={historyPage === 1}
+                          style={{
+                            borderRadius: '50rem',
+                            padding: '6px 16px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            color: historyPage === 1 ? '#94a3b8' : '#475569',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor:
+                              historyPage === 1 ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.2s ease-in-out',
+                          }}
                         >
-                          <button
-                            className="page-link text-success"
-                            onClick={() => setHistoryPage(historyPage - 1)}
-                          >
-                            Prev
-                          </button>
-                        </li>
+                          Prev
+                        </button>
+
                         {[...Array(totalHistoryPages)].map((_, i) => (
-                          <li
-                            key={i}
-                            className={`page-item ${historyPage === i + 1 ? 'active' : ''}`}
-                          >
-                            <button
-                              className={`page-link ${historyPage === i + 1 ? 'bg-success border-success text-white' : 'text-success'}`}
-                              onClick={() => setHistoryPage(i + 1)}
-                            >
-                              {i + 1}
-                            </button>
-                          </li>
-                        ))}
-                        <li
-                          className={`page-item ${historyPage === totalHistoryPages ? 'disabled' : ''}`}
-                        >
                           <button
-                            className="page-link text-success"
-                            onClick={() => setHistoryPage(historyPage + 1)}
+                            key={i}
+                            className="btn d-flex align-items-center justify-content-center p-0"
+                            onClick={() => setHistoryPage(i + 1)}
+                            style={{
+                              borderRadius: '50%',
+                              width: '32px',
+                              height: '32px',
+                              fontSize: '0.85rem',
+                              fontWeight: '700',
+                              color:
+                                historyPage === i + 1 ? '#ffffff' : '#64748b',
+                              backgroundColor:
+                                historyPage === i + 1
+                                  ? '#3d9a6e'
+                                  : 'transparent',
+                              border: 'none',
+                              transition: 'all 0.2s ease-in-out',
+                              boxShadow:
+                                historyPage === i + 1
+                                  ? '0 2px 8px rgba(61,154,110,0.35)'
+                                  : 'none',
+                            }}
                           >
-                            Next
+                            {i + 1}
                           </button>
-                        </li>
-                      </ul>
+                        ))}
+
+                        <button
+                          className="btn d-flex align-items-center justify-content-center"
+                          onClick={() => setHistoryPage(historyPage + 1)}
+                          disabled={historyPage === totalHistoryPages}
+                          style={{
+                            borderRadius: '50rem',
+                            padding: '6px 16px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            color:
+                              historyPage === totalHistoryPages
+                                ? '#94a3b8'
+                                : '#475569',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor:
+                              historyPage === totalHistoryPages
+                                ? 'not-allowed'
+                                : 'pointer',
+                            transition: 'all 0.2s ease-in-out',
+                          }}
+                        >
+                          Next
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

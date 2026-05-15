@@ -388,7 +388,7 @@ const CreditFormApplication = ({
             </Col>
             <Col md={6} className="mb-4">
               <Form.Group>
-                <Form.Label className="fw-semibold text-slate">
+                <Form.Label className="text-muted-custom small fw-semibold">
                   How are building maintenance and repair funds managed?
                 </Form.Label>
                 <Form.Select
@@ -757,13 +757,11 @@ const CreditFormApplication = ({
                   value={formData.AMT_CREDIT}
                   onChange={(e) => handleChange('AMT_CREDIT', e.target.value)}
                 />
-                {/* FIX: Always render AMT_CREDIT error text below the field, even if it's an auto-reject */}
                 {errors.AMT_CREDIT && (
                   <div className="text-danger small mt-2 pt-1 fw-semibold">
                     {errors.AMT_CREDIT}
                   </div>
                 )}
-                {/* FIX: Render the recommendation below the field */}
                 {errors.LOAN_REC && (
                   <div
                     className="small mt-2 pt-1 fw-semibold d-flex align-items-start"

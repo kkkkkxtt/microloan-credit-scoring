@@ -167,13 +167,43 @@ const CreditForm = ({ onSubmit, onCancel }) => {
 
   /* ─── Helpers ─────────────────────────────────────────────────────────── */
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    // 1. Create a snapshot of what the data WILL look like after this keystroke
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+
     setErrors((prev) => {
       const e = { ...prev };
+
+      // Clear the main error for the field being typed in
       if (e[field]) delete e[field];
-      if (['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_INCOME_TOTAL'].includes(field)) {
-        delete e.LOAN_REC;
+
+      // 2. Real-Time Recommendation Trigger
+      if (['AMT_CREDIT', 'AMT_ANNUITY'].includes(field)) {
+        const credit = parseFloat(newData.AMT_CREDIT);
+        const annuity = parseFloat(newData.AMT_ANNUITY);
+
+        // If both fields have valid numbers, calculate instantly
+        if (
+          !Number.isNaN(credit) &&
+          !Number.isNaN(annuity) &&
+          credit > 0 &&
+          annuity > 0
+        ) {
+          const annuityToCredit = annuity / credit;
+
+          if (annuityToCredit < 0.026 || annuityToCredit > 0.12) {
+            // Instantly show the updated percentage
+            e.LOAN_REC = `Recommendation: Yearly repayment should be between 2.6% and 12% of requested borrow amount. (Current: ${(annuityToCredit * 100).toFixed(1)}%)`;
+          } else {
+            // Instantly hide it if they fixed the ratio
+            delete e.LOAN_REC;
+          }
+        } else {
+          // Hide if fields are empty
+          delete e.LOAN_REC;
+        }
       }
+
       return e;
     });
   };
@@ -433,8 +463,12 @@ const CreditForm = ({ onSubmit, onCancel }) => {
     }
 
     setErrors((prev) => ({ ...prev, ...newErrors }));
+
+    // FIX: Filter out 'LOAN_REC' so it acts purely as a warning and does not block the user
+    const errorKeys = Object.keys(newErrors).filter((k) => k !== 'LOAN_REC');
+
     return {
-      isValid: Object.keys(newErrors).length === 0 && !isAutoRejected,
+      isValid: errorKeys.length === 0 && !isAutoRejected,
       isAutoRejected,
       newErrors,
     };

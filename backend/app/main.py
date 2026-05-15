@@ -56,7 +56,7 @@ async def get_latest_id(db: Session = Depends(get_db)):
     except Exception as e:
         return {"latest_id": 100001}
 
-@app.post("/predict", response_model=PredictionResponse)
+@app.post("/predict")
 async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
         result = process_prediction(request.root)
@@ -84,6 +84,34 @@ async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db)
             'risk_probability': float(result.get('risk_probability', new_record.model_probability)),
             'decision': new_record.model_decision,
         })
+
+        # --- FIX: Inject Dictionary Text for Initial Submit Response ---
+        from app.ml.predict import xai_dictionary
+        dict_keys_sorted = sorted(xai_dictionary.keys(), key=len, reverse=True) 
+        
+        enriched_shap_log = []
+        for item in result_to_return.get("shap_log", []): 
+            raw_feature = item.get("feature", "")
+            effect = float(item.get("effect", 0.0))
+            
+            dict_key = raw_feature
+            if dict_key not in xai_dictionary:
+                for key in dict_keys_sorted:
+                    if raw_feature.startswith(key):
+                        dict_key = key
+                        break
+                        
+            dict_entry = xai_dictionary.get(dict_key, {})
+            
+            enriched_shap_log.append({
+                "feature": raw_feature,
+                "effect": effect,
+                "display_name": dict_entry.get("display_name", raw_feature.replace('_', ' ').title()),
+                "risk_reason": dict_entry.get("risk_reason", "This metric deviated from standard safety thresholds and increased risk."),
+                "protective_reason": dict_entry.get("protective_reason", "This factor contributed positively to your application.")
+            })
+            
+        result_to_return["shap_log"] = enriched_shap_log
 
         return result_to_return
         
