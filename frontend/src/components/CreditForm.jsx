@@ -55,7 +55,7 @@ const buildInitialState = (user) => ({
   CODE_GENDER: user?.profile?.gender || '',
   birth_date: user?.profile?.date_of_birth || '',
   NAME_EDUCATION_TYPE: 'Secondary / secondary special',
-  NAME_FAMILY_STATUS: 'Married',
+  NAME_FAMILY_STATUS: 'Single / not married',
   CNT_CHILDREN: 0,
   CNT_FAM_MEMBERS: 1,
 
@@ -73,7 +73,7 @@ const buildInitialState = (user) => ({
   NAME_HOUSING_TYPE: 'House / apartment',
   HOUSETYPE_MODE: 'block of flats',
   WALLSMATERIAL_MODE: [],
-  FONDKAPREMONT_MODE: 'reg oper account',
+  FONDKAPREMONT_MODE: 'not specified',
   EMERGENCYSTATE_MODE: 'No',
   REG_CITY_NOT_LIVE_CITY: '0',
   REG_CITY_NOT_WORK_CITY: '0',
@@ -84,8 +84,11 @@ const buildInitialState = (user) => ({
 
   NAME_INCOME_TYPE: 'Working',
   AMT_INCOME_TOTAL: user?.profile?.annual_income || '',
-  OCCUPATION_TYPE: 'Laborers',
-  ORGANIZATION_TYPE: 'Business Entity Type 3',
+
+  // Requirement 3: Set default empty states
+  OCCUPATION_TYPE: '',
+  ORGANIZATION_TYPE: '',
+
   employed_date: '',
 
   NAME_CONTRACT_TYPE: 'Cash loans',
@@ -97,6 +100,22 @@ const buildInitialState = (user) => ({
   DEF_30_CNT_SOCIAL_CIRCLE: 0,
   DEF_60_CNT_SOCIAL_CIRCLE: 0,
 });
+/* ─── Field Map for Auto-Repositioning ────────────────────────────────────── */
+const FIELD_STEP_MAP = {
+  CODE_GENDER: 1,
+  birth_date: 1,
+  CNT_CHILDREN: 1,
+  CNT_FAM_MEMBERS: 1,
+  WALLSMATERIAL_MODE: 3,
+  AMT_INCOME_TOTAL: 4,
+  employed_date: 4,
+  OCCUPATION_TYPE: 4,
+  ORGANIZATION_TYPE: 4,
+  AMT_CREDIT: 5,
+  AMT_ANNUITY: 5,
+  AMT_GOODS_PRICE: 5,
+  LOAN_REC: 5,
+};
 
 /* ─── Component ───────────────────────────────────────────────────────────── */
 const CreditForm = ({ onSubmit, onCancel }) => {
@@ -149,13 +168,14 @@ const CreditForm = ({ onSubmit, onCancel }) => {
   /* ─── Helpers ─────────────────────────────────────────────────────────── */
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => {
-        const e = { ...prev };
-        delete e[field];
-        return e;
-      });
-    }
+    setErrors((prev) => {
+      const e = { ...prev };
+      if (e[field]) delete e[field];
+      if (['AMT_CREDIT', 'AMT_ANNUITY', 'AMT_INCOME_TOTAL'].includes(field)) {
+        delete e.LOAN_REC;
+      }
+      return e;
+    });
   };
 
   const showToast = (msg) => {
@@ -179,7 +199,7 @@ const CreditForm = ({ onSubmit, onCancel }) => {
       return Number.isNaN(dt.getTime()) ? null : dt;
     };
 
-    if (currentStep === 1) {
+    if (currentStep >= 1) {
       if (!formData.CODE_GENDER)
         newErrors.CODE_GENDER = 'Please select gender.';
       const bDate = parseDateSafe(formData.birth_date);
@@ -194,6 +214,10 @@ const CreditForm = ({ onSubmit, onCancel }) => {
           newErrors.birth_date =
             'AUTO-REJECT: Applicant is a minor (Under 18).';
           isAutoRejected = true;
+        } else if (age > 70) {
+          newErrors.birth_date =
+            'AUTO-REJECT: Applicant exceeds maximum age limit (70).';
+          isAutoRejected = true;
         }
       }
       const children = parseNumber(formData.CNT_CHILDREN);
@@ -204,7 +228,7 @@ const CreditForm = ({ onSubmit, onCancel }) => {
         newErrors.CNT_FAM_MEMBERS = 'Household members must be 1 or greater.';
     }
 
-    if (currentStep === 3) {
+    if (currentStep >= 3) {
       if (
         !formData.WALLSMATERIAL_MODE ||
         formData.WALLSMATERIAL_MODE.length === 0
@@ -213,22 +237,32 @@ const CreditForm = ({ onSubmit, onCancel }) => {
           'Please select at least one building wall material.';
     }
 
-    if (currentStep === 4) {
+    if (currentStep >= 4) {
+      const income = parseNumber(formData.AMT_INCOME_TOTAL);
+
       if (
-        !formData.AMT_INCOME_TOTAL ||
+        formData.AMT_INCOME_TOTAL === null ||
+        formData.AMT_INCOME_TOTAL === undefined ||
         formData.AMT_INCOME_TOTAL.toString().trim() === ''
       ) {
         newErrors.AMT_INCOME_TOTAL = 'Please enter your total annual income.';
+      } else if (Number.isNaN(income) || income < 0) {
+        newErrors.AMT_INCOME_TOTAL = 'Please enter a valid annual income.';
       } else {
-        const income = parseNumber(formData.AMT_INCOME_TOTAL);
-        if (Number.isNaN(income) || income < 0)
-          newErrors.AMT_INCOME_TOTAL = 'Please enter a valid annual income.';
+        const nonWorkingTypes = ['Pensioner', 'Student', 'Unemployed'];
+        const isWorking = !nonWorkingTypes.includes(formData.NAME_INCOME_TYPE);
+
+        if (isWorking && income < 1000) {
+          newErrors.AMT_INCOME_TOTAL =
+            'AUTO-REJECT: Verifiable income is below minimum threshold.';
+          isAutoRejected = true;
+        }
       }
-      if (
-        ['Working', 'Commercial associate', 'State servant'].includes(
-          formData.NAME_INCOME_TYPE,
-        )
-      ) {
+
+      const nonWorkingTypes = ['Pensioner', 'Student', 'Unemployed'];
+      const isWorking = !nonWorkingTypes.includes(formData.NAME_INCOME_TYPE);
+
+      if (isWorking) {
         const empDate = parseDateSafe(formData.employed_date);
         if (!empDate)
           newErrors.employed_date =
@@ -246,12 +280,22 @@ const CreditForm = ({ onSubmit, onCancel }) => {
                 'Employment start date is inconsistent with Date of Birth.';
           }
         }
+
+        if (!formData.OCCUPATION_TYPE) {
+          newErrors.OCCUPATION_TYPE =
+            'Please select your Job Title / Occupation.';
+        }
+        if (!formData.ORGANIZATION_TYPE) {
+          newErrors.ORGANIZATION_TYPE =
+            'Please select your Industry / Organization Type.';
+        }
       }
     }
 
-    if (currentStep === 5) {
+    if (currentStep >= 5) {
       if (
-        !formData.AMT_CREDIT ||
+        formData.AMT_CREDIT === null ||
+        formData.AMT_CREDIT === undefined ||
         formData.AMT_CREDIT.toString().trim() === ''
       ) {
         newErrors.AMT_CREDIT = 'Please enter the requested borrow amount.';
@@ -262,7 +306,8 @@ const CreditForm = ({ onSubmit, onCancel }) => {
             'Please enter a valid requested credit amount.';
       }
       if (
-        !formData.AMT_ANNUITY ||
+        formData.AMT_ANNUITY === null ||
+        formData.AMT_ANNUITY === undefined ||
         formData.AMT_ANNUITY.toString().trim() === ''
       ) {
         newErrors.AMT_ANNUITY =
@@ -273,6 +318,40 @@ const CreditForm = ({ onSubmit, onCancel }) => {
           newErrors.AMT_ANNUITY =
             'Please enter a valid yearly repayment amount.';
       }
+
+      const income = parseNumber(formData.AMT_INCOME_TOTAL);
+      const credit = parseNumber(formData.AMT_CREDIT);
+      const annuity = parseNumber(formData.AMT_ANNUITY);
+
+      // FIX: Independent ratio evaluations to prevent conflicting/hidden errors
+      if (
+        !Number.isNaN(income) &&
+        !Number.isNaN(credit) &&
+        !Number.isNaN(annuity) &&
+        income >= 0 &&
+        credit > 0 &&
+        annuity > 0
+      ) {
+        // 1. Credit to Income (0.5x to 10x) - Auto Reject
+        const creditToIncome = income === 0 ? Infinity : credit / income;
+        if (creditToIncome < 0.5 || creditToIncome > 10) {
+          newErrors.AMT_CREDIT = `AUTO-REJECT: Requested borrow amount must be between 0.5x and 10x of your annual income. (Current: ${income === 0 ? 'Infinity' : creditToIncome.toFixed(1)}x)`;
+          isAutoRejected = true;
+        }
+
+        // 2. Income to Annuity (2x to 30x) - Auto Reject
+        const incomeToAnnuity = annuity === 0 ? Infinity : income / annuity;
+        if (incomeToAnnuity < 2 || incomeToAnnuity > 30) {
+          newErrors.AMT_ANNUITY = `AUTO-REJECT: Income to repayment ratio must be between 2x and 30x. (Current: ${incomeToAnnuity.toFixed(1)}x)`;
+          isAutoRejected = true;
+        }
+
+        // 3. Annuity to Credit (2.6% to 12%) - Recommendation ONLY (No Auto-Reject trigger)
+        const annuityToCredit = annuity / credit;
+        if (annuityToCredit < 0.026 || annuityToCredit > 0.12) {
+          newErrors.LOAN_REC = `Recommendation: Yearly repayment recommended to be between 2.6% and 12% of requested borrow amount. (Current: ${(annuityToCredit * 100).toFixed(1)}%)`;
+        }
+      }
     }
 
     if (currentStep === 6) {
@@ -280,7 +359,12 @@ const CreditForm = ({ onSubmit, onCancel }) => {
       const parseDateSafe2 = parseDateSafe;
       const income = parseNumber(formData.AMT_INCOME_TOTAL) || 0;
       const credit = parseNumber(formData.AMT_CREDIT) || 0;
+      const annuity = parseNumber(formData.AMT_ANNUITY) || 0;
       const bDate = parseDateSafe2(formData.birth_date);
+
+      const nonWorkingTypes = ['Pensioner', 'Student', 'Unemployed'];
+      const isWorking = !nonWorkingTypes.includes(formData.NAME_INCOME_TYPE);
+
       if (!bDate) {
         newErrors.birth_date = 'Please provide a valid Date of Birth.';
       } else {
@@ -289,8 +373,13 @@ const CreditForm = ({ onSubmit, onCancel }) => {
           newErrors.birth_date =
             'AUTO-REJECT: Applicant is a minor (Under 18).';
           isAutoRejected = true;
+        } else if (age > 70) {
+          newErrors.birth_date =
+            'AUTO-REJECT: Applicant exceeds maximum age limit (70).';
+          isAutoRejected = true;
         }
-        if (formData.employed_date) {
+
+        if (formData.employed_date && isWorking) {
           const empDate = parseDateSafe2(formData.employed_date);
           if (!empDate) {
             newErrors.employed_date =
@@ -312,15 +401,34 @@ const CreditForm = ({ onSubmit, onCancel }) => {
           }
         }
       }
-      if (income < 1000) {
+
+      if (isWorking && income < 1000) {
         newErrors.AMT_INCOME_TOTAL =
           'AUTO-REJECT: Verifiable income is below minimum threshold.';
         isAutoRejected = true;
       }
-      if (credit > income * 20) {
-        newErrors.AMT_CREDIT =
-          'AUTO-REJECT: Requested credit wildly exceeds acceptable debt-to-income limits.';
-        isAutoRejected = true;
+
+      // FIX: Independent ratio evaluations for final check
+      if (income >= 0 && credit > 0 && annuity > 0) {
+        const creditToIncome = income === 0 ? Infinity : credit / income;
+        if (creditToIncome < 0.5 || creditToIncome > 10) {
+          newErrors.AMT_CREDIT =
+            'AUTO-REJECT: Requested borrow amount must be between 0.5x and 10x of your annual income.';
+          isAutoRejected = true;
+        }
+
+        const incomeToAnnuity = annuity === 0 ? Infinity : income / annuity;
+        if (incomeToAnnuity < 2 || incomeToAnnuity > 30) {
+          newErrors.AMT_ANNUITY =
+            'AUTO-REJECT: Income to repayment ratio must be between 2x and 30x.';
+          isAutoRejected = true;
+        }
+
+        const annuityToCredit = annuity / credit;
+        if (annuityToCredit < 0.026 || annuityToCredit > 0.12) {
+          newErrors.LOAN_REC =
+            'Recommendation: Yearly repayment should be between 2.6% and 12% of requested borrow amount.';
+        }
       }
     }
 
@@ -328,20 +436,39 @@ const CreditForm = ({ onSubmit, onCancel }) => {
     return {
       isValid: Object.keys(newErrors).length === 0 && !isAutoRejected,
       isAutoRejected,
+      newErrors,
     };
   };
 
   /* ─── Navigation ──────────────────────────────────────────────────────── */
   const handleNext = () => {
-    const { isValid, isAutoRejected } = validateStep(step);
+    const { isValid, isAutoRejected, newErrors } = validateStep(step);
+
     if (!isValid) {
       showToast(
         isAutoRejected
           ? 'Application auto-rejected due to invalid core parameters.'
           : 'Please fix the highlighted errors before continuing.',
       );
+
+      // Auto-reposition logic
+      const errKeys = Object.keys(newErrors);
+      if (errKeys.length > 0) {
+        const firstErrStep = Math.min(
+          ...errKeys.map((k) => FIELD_STEP_MAP[k] || step),
+        );
+        if (firstErrStep !== step) {
+          setStep(firstErrStep);
+        } else {
+          sectionRefs.current[step - 1]?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          });
+        }
+      }
       return;
     }
+
     if (step < 6) setStep(step + 1);
     else setShowConfirm(true);
   };
@@ -353,13 +480,27 @@ const CreditForm = ({ onSubmit, onCancel }) => {
   /* ─── Final submit ────────────────────────────────────────────────────── */
   const executeSubmit = () => {
     setShowConfirm(false);
-    const { isValid, isAutoRejected } = validateStep(6);
+    const { isValid, isAutoRejected, newErrors } = validateStep(6);
+
     if (!isValid) {
       showToast(
         isAutoRejected
           ? 'Application auto-rejected due to core business rules.'
           : 'Please fix the highlighted errors before submitting.',
       );
+
+      // Auto-reposition logic
+      const errKeys = Object.keys(newErrors);
+      if (errKeys.length > 0) {
+        const firstErrStep = Math.min(
+          ...errKeys.map((k) => FIELD_STEP_MAP[k] || 6),
+        );
+        if (firstErrStep < 6) {
+          setStep(firstErrStep);
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
       return;
     }
 
@@ -367,8 +508,12 @@ const CreditForm = ({ onSubmit, onCancel }) => {
     const DAYS_BIRTH = -Math.ceil(
       (new Date() - birthDate) / (1000 * 60 * 60 * 24),
     );
-    let DAYS_EMPLOYED = 365243;
-    if (formData.employed_date) {
+
+    let DAYS_EMPLOYED = 365243; // Default value for non-working types
+    const nonWorkingTypes = ['Pensioner', 'Student', 'Unemployed'];
+    const isWorking = !nonWorkingTypes.includes(formData.NAME_INCOME_TYPE);
+
+    if (formData.employed_date && isWorking) {
       const empDate = new Date(formData.employed_date);
       DAYS_EMPLOYED = -Math.ceil(
         (new Date() - empDate) / (1000 * 60 * 60 * 24),
@@ -411,7 +556,6 @@ const CreditForm = ({ onSubmit, onCancel }) => {
       DEF_60_CNT_SOCIAL_CIRCLE: parseInt(formData.DEF_60_CNT_SOCIAL_CIRCLE),
     };
 
-    // Resolve friendly org label back to raw code if needed
     if (
       payload.ORGANIZATION_TYPE &&
       typeof payload.ORGANIZATION_TYPE === 'string'

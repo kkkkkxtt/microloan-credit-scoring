@@ -532,7 +532,7 @@ function App() {
                       {/* Change header to be a bit more neutral since it now contains mixed factors */}
                       <h4 className="fw-bold text-slate mb-3">
                         {finalDecision === 'Approve'
-                          ? 'Key Profile Factors'
+                          ? 'Key Profile Factors and Actionable Insights'
                           : 'Actionable Insights for Improvement'}
                       </h4>
 
@@ -562,13 +562,11 @@ function App() {
                                     {rec.reason}
                                   </p>
                                   <div className="bg-white p-2 rounded border small">
-                                    {/* Dynamically alter the text prefix */}
+                                    {/* Implemented your cleaner UX phrasing */}
                                     <span
                                       className={`fw-bold ${isProtective ? 'text-slate' : 'text-danger'}`}
                                     >
-                                      {isProtective
-                                        ? 'Positive Impact: '
-                                        : 'Risk Factor: '}
+                                      Recommended Action:
                                     </span>
                                     <span className="text-muted-custom">
                                       {' '}

@@ -1,18 +1,3 @@
-/**
- * CreditFormApplication.jsx
- *
- * Contains ONLY the JSX for the 6 form steps.
- * All state and logic lives in CreditForm.jsx which imports this.
- *
- * Props:
- *   step          – current step number (1-6)
- *   formData      – form state object
- *   errors        – field-level error map
- *   handleChange  – (field, value) => void
- *   sectionRefs   – ref array for scroll-to-step
- *   ORG_FRIENDLY_MAP – friendly label map for org types
- */
-
 import React from 'react';
 import { Form, Row, Col, Alert } from 'react-bootstrap';
 import { AlertTriangle } from 'lucide-react';
@@ -579,13 +564,9 @@ const CreditFormApplication = ({
                 <Form.Control
                   className={`custom-input ${errors.employed_date ? 'is-invalid' : ''}`}
                   type="date"
-                  disabled={
-                    ![
-                      'Working',
-                      'Commercial associate',
-                      'State servant',
-                    ].includes(formData.NAME_INCOME_TYPE)
-                  }
+                  disabled={['Pensioner', 'Unemployed', 'Student'].includes(
+                    formData.NAME_INCOME_TYPE,
+                  )}
                   value={formData.employed_date}
                   onChange={(e) =>
                     handleChange('employed_date', e.target.value)
@@ -605,7 +586,7 @@ const CreditFormApplication = ({
                 </Form.Label>
                 <Form.Control
                   list="occupation-options"
-                  className="custom-input"
+                  className={`custom-input ${errors.OCCUPATION_TYPE ? 'is-invalid' : ''}`}
                   disabled={['Pensioner', 'Unemployed', 'Student'].includes(
                     formData.NAME_INCOME_TYPE,
                   )}
@@ -638,6 +619,11 @@ const CreditFormApplication = ({
                     <option key={o} value={o} />
                   ))}
                 </datalist>
+                {errors.OCCUPATION_TYPE && (
+                  <div className="text-danger small mt-1 fw-semibold">
+                    {errors.OCCUPATION_TYPE}
+                  </div>
+                )}
               </Form.Group>
             </Col>
             <Col md={4}>
@@ -647,7 +633,7 @@ const CreditFormApplication = ({
                 </Form.Label>
                 <Form.Control
                   list="org-options"
-                  className="custom-input"
+                  className={`custom-input ${errors.ORGANIZATION_TYPE ? 'is-invalid' : ''}`}
                   disabled={['Pensioner', 'Unemployed', 'Student'].includes(
                     formData.NAME_INCOME_TYPE,
                   )}
@@ -700,6 +686,11 @@ const CreditFormApplication = ({
                       );
                     })}
                 </datalist>
+                {errors.ORGANIZATION_TYPE && (
+                  <div className="text-danger small mt-1 fw-semibold">
+                    {errors.ORGANIZATION_TYPE}
+                  </div>
+                )}
               </Form.Group>
             </Col>
           </Row>
@@ -718,12 +709,21 @@ const CreditFormApplication = ({
             <div className="step-circle">5</div>
             <h4 className="fw-bold text-slate m-0">Loan Details</h4>
           </div>
+
+          {/* FIX: Render ALL relevant Step 5 Auto-Rejects prominently in the banner */}
           {errors.AMT_CREDIT && errors.AMT_CREDIT.includes('AUTO-REJECT') && (
             <Alert variant="danger">
               <AlertTriangle size={18} className="me-2" />
               {errors.AMT_CREDIT}
             </Alert>
           )}
+          {errors.AMT_ANNUITY && errors.AMT_ANNUITY.includes('AUTO-REJECT') && (
+            <Alert variant="danger">
+              <AlertTriangle size={18} className="me-2" />
+              {errors.AMT_ANNUITY}
+            </Alert>
+          )}
+
           <Row>
             <Col md={6}>
               <Form.Group className="mb-4">
@@ -744,6 +744,7 @@ const CreditFormApplication = ({
                 </Form.Select>
               </Form.Group>
             </Col>
+
             <Col md={6}>
               <Form.Group className="mb-4">
                 <Form.Label className="text-muted-custom small fw-semibold">
@@ -756,13 +757,25 @@ const CreditFormApplication = ({
                   value={formData.AMT_CREDIT}
                   onChange={(e) => handleChange('AMT_CREDIT', e.target.value)}
                 />
-                {errors.AMT_CREDIT && !errors.AMT_CREDIT.includes('AUTO') && (
-                  <div className="text-danger small mt-2 pt-1">
+                {/* FIX: Always render AMT_CREDIT error text below the field, even if it's an auto-reject */}
+                {errors.AMT_CREDIT && (
+                  <div className="text-danger small mt-2 pt-1 fw-semibold">
                     {errors.AMT_CREDIT}
+                  </div>
+                )}
+                {/* FIX: Render the recommendation below the field */}
+                {errors.LOAN_REC && (
+                  <div
+                    className="small mt-2 pt-1 fw-semibold d-flex align-items-start"
+                    style={{ color: '#e6d85c' }}
+                  >
+                    {' '}
+                    {errors.LOAN_REC}
                   </div>
                 )}
               </Form.Group>
             </Col>
+
             <Col md={6}>
               <Form.Group className="mb-4">
                 <Form.Label className="text-muted-custom small fw-semibold">
@@ -776,12 +789,23 @@ const CreditFormApplication = ({
                   onChange={(e) => handleChange('AMT_ANNUITY', e.target.value)}
                 />
                 {errors.AMT_ANNUITY && (
-                  <div className="text-danger small mt-2 pt-1">
+                  <div className="text-danger small mt-2 pt-1 fw-semibold">
                     {errors.AMT_ANNUITY}
+                  </div>
+                )}
+                {/* FIX: Render the recommendation below the field */}
+                {errors.LOAN_REC && (
+                  <div
+                    className="small mt-2 pt-1 fw-semibold d-flex align-items-start"
+                    style={{ color: '#e6d85c' }}
+                  >
+                    {' '}
+                    {errors.LOAN_REC}
                   </div>
                 )}
               </Form.Group>
             </Col>
+
             <Col md={6}>
               <Form.Group className="mb-4">
                 <Form.Label className="text-muted-custom small fw-semibold">
