@@ -1,4 +1,9 @@
-# backend/app/schemas/predict.py
+"""Pydantic schemas for prediction requests and responses.
+
+These schemas validate incoming raw feature dictionaries, enforce
+basic sanity checks, and structure the API response expected by the
+frontend.
+"""
 from pydantic import BaseModel, RootModel, root_validator
 from typing import Dict, Any, List, Optional
 

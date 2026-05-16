@@ -22,11 +22,13 @@ const MainPage = ({ onLoginClick }) => {
       {/* Navbar */}
       <Container className="pt-4 pb-2">
         <div className="d-flex justify-content-between align-items-center mb-5 slide-down">
-          <div className="brand-logo" style={{ width: '250px' }}>
+          <div className="brand-logo" style={{ width: '500px' }}>
             <div className="brand-logo-mark">C</div>
             <div>
               <p className="brand-name">Credify</p>
-              <p className="brand-tagline">Microloan Credit Scoring Platform</p>
+              <p className="brand-tagline">
+                Microloan Credit Scoring Classification Platform
+              </p>
             </div>
           </div>
           <button

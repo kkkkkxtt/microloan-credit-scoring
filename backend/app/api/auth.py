@@ -11,19 +11,24 @@ router = APIRouter()
 
 @router.post("/register", response_model=TokenResponse)
 def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user and return an access token and user info.
+
+    Creates the database user record, an empty profile for applicants,
+    and returns a JWT access token valid for the configured expiry.
+    """
     # 1. Check if email already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # 2. Hash password and create User (USING NEW DB COLUMNS)
+    # 2. Hash password and create User 
     hashed_pw = get_password_hash(user_data.password)
     new_user = User(
         email=user_data.email,
         hashed_password=hashed_pw,
-        username=user_data.name,     # <-- FIXED
-        user_role=user_data.role,    # <-- FIXED
-        user_avatar_url="/avatars/user_default_pfp_picture.jpg" # <-- FIXED
+        username=user_data.name,     
+        user_role=user_data.role,    
+        user_avatar_url="/avatars/user_default_pfp_picture.jpg" 
     )
     db.add(new_user)
     db.commit()
@@ -42,6 +47,7 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         expires_delta=access_token_expires
     )
 
+    # 5. Return token and user info  
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -50,6 +56,10 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
+    """Authenticate a user using email and password and return a token.
+
+    Verifies credentials and issues a JWT access token on success.
+    """
     # 1. Find user by email
     user = db.query(User).filter(User.email == user_data.email).first()
     if not user:
@@ -80,6 +90,11 @@ def update_profile(
     current_user: User = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):
+    """Update the authenticated user's profile and account information.
+
+    Accepts partial updates and will only modify fields present in the
+    request payload. Handles safe password and email updates.
+    """
     # 1. Update Core User info
     if profile_data.name is not None:
         current_user.username = profile_data.name

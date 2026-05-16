@@ -27,7 +27,9 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import ApplicantDashboard from './components/ApplicantDashboard';
 import RecordPage from './components/RecordPage';
 
-//GLOBAL API INTERCEPTOR FOR SESSION MANAGEMENT
+// Main application view manager. Contains handlers for searching,
+// submitting loan forms, rendering results, and user session control.
+// GLOBAL API INTERCEPTOR FOR SESSION MANAGEMENT
 axios.interceptors.response.use(
   (response) => {
     return response;
@@ -172,6 +174,7 @@ function App() {
     }
   };
 
+  // Submit application data to the prediction endpoint and persist recent records locally
   const handleFormSubmit = async (data) => {
     setCurrentView('result');
     setLoading(true);
@@ -211,6 +214,9 @@ function App() {
   };
 
   const handleViewOfficerDetail = async (app) => {
+    // FIX: Instantly scroll to the top of the page when opening an application
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
     setLoading(true);
     setCurrentView('result');
     try {
@@ -646,11 +652,13 @@ function App() {
       )}
       {(currentView === 'home' || user.role === 'loan_officer') && (
         <div className="app-header mb-4 slide-down d-flex align-items-center position-relative">
-          <div className="brand-logo" style={{ width: '250px' }}>
+          <div className="brand-logo" style={{ width: '500px' }}>
             <div className="brand-logo-mark">C</div>
             <div>
               <p className="brand-name">Credify</p>
-              <p className="brand-tagline">Microloan Credit Scoring Platform</p>
+              <p className="brand-tagline">
+                Microloan Credit Scoring Classification Platform
+              </p>
             </div>
           </div>
 
@@ -926,6 +934,7 @@ function App() {
                             <button
                               className="btn p-0 small border-0 bg-transparent text-decoration-none d-inline-flex align-items-center record-detail-btn"
                               onClick={() => {
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
                                 setResult(record);
                                 setCurrentView('result');
                               }}

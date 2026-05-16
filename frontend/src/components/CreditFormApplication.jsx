@@ -12,9 +12,7 @@ const CreditFormApplication = ({
 }) => {
   return (
     <div className="custom-card p-4 p-md-5 mb-4">
-      {/* ══════════════════════════════════════════
-          STEP 1 – Personal Demographics
-      ══════════════════════════════════════════ */}
+      {/* STEP 1 – Personal Demographics */}
       {step >= 1 && (
         <div
           className="form-section slide-down"
@@ -175,9 +173,7 @@ const CreditFormApplication = ({
         </div>
       )}
 
-      {/* ══════════════════════════════════════════
-          STEP 2 – Contact & Assets
-      ══════════════════════════════════════════ */}
+      {/* STEP 2 – Contact & Assets */}
       {step >= 2 && (
         <div
           className="form-section slide-down mt-5"
@@ -283,9 +279,7 @@ const CreditFormApplication = ({
         </div>
       )}
 
-      {/* ══════════════════════════════════════════
-          STEP 3 – Housing & Geography
-      ══════════════════════════════════════════ */}
+      {/* STEP 3 – Housing & Geography */}
       {step >= 3 && (
         <div
           className="form-section slide-down mt-5"
@@ -485,9 +479,7 @@ const CreditFormApplication = ({
         </div>
       )}
 
-      {/* ══════════════════════════════════════════
-          STEP 4 – Employment & Income
-      ══════════════════════════════════════════ */}
+      {/* STEP 4 – Employment & Income*/}
       {step >= 4 && (
         <div
           className="form-section slide-down mt-5"
@@ -697,9 +689,7 @@ const CreditFormApplication = ({
         </div>
       )}
 
-      {/* ══════════════════════════════════════════
-          STEP 5 – Loan Details
-      ══════════════════════════════════════════ */}
+      {/* STEP 5 – Loan Details */}
       {step >= 5 && (
         <div
           className="form-section slide-down mt-5"
@@ -824,9 +814,7 @@ const CreditFormApplication = ({
         </div>
       )}
 
-      {/* ══════════════════════════════════════════
-          STEP 6 – Final Declarations
-      ══════════════════════════════════════════ */}
+      {/* STEP 6 – Final Declarations */}
       {step >= 6 && (
         <div
           className="form-section slide-down mt-5"

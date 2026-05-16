@@ -1,6 +1,12 @@
+"""User-related Pydantic schemas used for request and response bodies.
+
+Includes creation/login payloads and translated response models that
+map SQLAlchemy attribute names to the fields the frontend expects.
+"""
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import date
+
 
 # ---- REQUEST SCHEMAS (From React to FastAPI) ----
 class UserCreate(BaseModel):

@@ -41,6 +41,11 @@ app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 
 @app.on_event("startup")
 async def startup_event():
+    """Startup hook: preload ML assets into memory.
+
+    Loading the model and explainer on startup reduces first-request
+    latency for prediction endpoints.
+    """
     load_ml_assets()
 
 @app.get("/latest-id")
@@ -56,8 +61,15 @@ async def get_latest_id(db: Session = Depends(get_db)):
     except Exception as e:
         return {"latest_id": 100001}
 
+
 @app.post("/predict")
 async def predict_loan(request: PredictionRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Run model prediction for a submitted application.
+
+    Validates the incoming request, runs the ML pipeline, stores the
+    resulting ``ApplicationRecord`` in the database and returns an
+    enriched response containing SHAP explanations and metadata.
+    """
     try:
         result = process_prediction(request.root)
         
@@ -126,6 +138,11 @@ with open(DICT_PATH, 'r') as f:
 
 @app.get("/history/{ic}")
 async def get_applicant_history(ic: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Return the historical application records for `ic`.
+
+    Applicants are restricted to their own records; loan officers may
+    query any applicant id.
+    """
     try:
         query = db.query(ApplicationRecord).filter(ApplicationRecord.application_id == ic)
         
@@ -241,6 +258,7 @@ async def get_applicant_history(ic: str, db: Session = Depends(get_db), current_
 # --- NEW ENDPOINT: FETCH ALL MY HISTORY SECURELY ---
 @app.get("/history/me/all")
 async def get_my_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Return all historical application records for the authenticated applicant."""
     try:
         if current_user.user_role != "applicant":
             raise HTTPException(status_code=403, detail="Only applicants can fetch their history this way.")
@@ -419,6 +437,11 @@ def override_decision(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
+    """Allow a loan officer to provide a manual override and justification.
+
+    The function appends the officer's review to the stored
+    ``officer_justification`` JSON and updates the manual decision.
+    """
     if current_user.user_role != "loan_officer":
         raise HTTPException(status_code=403, detail="Only Loan Officers can perform overrides.")
         

@@ -1,6 +1,13 @@
-# C:\neww\FYP\microloan-credit-scoring\backend\app\db\database.py
+"""Database setup for the application.
 
-# Notice: create_all is removed from this line!
+This module defines the SQLAlchemy ``engine``, a ``SessionLocal``
+factory for creating request-scoped sessions, and the declarative
+``Base`` class used by model definitions.
+
+For production use you should replace the hard-coded
+``SQLALCHEMY_DATABASE_URL`` with a value from environment variables or
+a configuration file to avoid committing secrets to source control.
+"""
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker

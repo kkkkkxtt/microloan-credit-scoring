@@ -1,3 +1,6 @@
+// Login.jsx
+// Component responsible for authenticating users. Uses AuthContext's
+// `login` helper and displays inline errors returned by the backend.
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
@@ -13,7 +16,7 @@ const Login = ({ switchToRegister }) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
+    // Call the shared login helper from context and handle its result
     const result = await login(email, password);
     if (!result.success) {
       let errMsg = 'An unexpected error occurred.';

@@ -1,3 +1,8 @@
+// React context that centralizes authentication state and helpers.
+//
+// Exposes: `user`, `token`, `loading`, `login`, `register`, `logout`.
+// The provider persists the access token and user in localStorage so
+// sessions survive page refreshes.
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -24,6 +29,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, [token]);
 
+  // Login helper: calls backend and persists token + user on success
   const login = async (email, password) => {
     try {
       const response = await axios.post('http://127.0.0.1:8000/auth/login', {
@@ -47,6 +53,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Register helper: calls backend register endpoint and persists session
   const register = async (userData) => {
     try {
       const response = await axios.post(
@@ -70,6 +77,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Logout clears local session and context state
   const logout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');

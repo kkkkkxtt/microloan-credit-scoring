@@ -1,3 +1,8 @@
+"""Utility script to force-reset the development database.
+
+WARNING: This script irreversibly drops the public schema and recreates
+it. Use only in development or with extreme caution.
+"""
 from app.db.database import engine, Base
 from app.db import models
 from sqlalchemy import text

@@ -4,7 +4,15 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.database import Base 
 
+
 class User(Base):
+    """Represents an application user (applicant or loan officer).
+
+    Fields:
+    - ``email`` and ``hashed_password``: credentials
+    - ``username`` and ``user_avatar_url``: display information
+    - ``user_role``: controls permission boundaries in the API
+    """
     __tablename__ = "users"
 
     user_id = Column(Integer, primary_key=True, index=True)
@@ -25,6 +33,7 @@ class User(Base):
 
 
 class UserProfile(Base):
+    """Extended profile data associated with a single ``User``."""
     __tablename__ = "user_profiles"
 
     user_profile_id = Column(Integer, primary_key=True, index=True)
@@ -43,6 +52,13 @@ class UserProfile(Base):
 
 
 class ApplicationRecord(Base):
+    """Stores submitted application data, ML outputs and reviewer notes.
+
+    - ``input_features`` and ``shap_explanations`` keep the original
+      input and the model explanation JSON blobs.
+    - ``manual_decision`` and ``officer_justification`` record human
+      overrides and multi-officer reviews.
+    """
     __tablename__ = "applications_records"
 
     application_record_id = Column(Integer, primary_key=True, index=True)

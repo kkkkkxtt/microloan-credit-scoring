@@ -276,7 +276,16 @@ const OfficerDashboard = ({ onViewDetails }) => {
                           <FileText size={14} className="me-1" /> Details
                         </button>
                         <button
-                          onClick={() => setSelectedApp(app)}
+                          onClick={(e) => {
+                            setSelectedApp(app);
+                            // Smoothly snap the screen to center on this specific application's review panel
+                            setTimeout(() => {
+                              e.target.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center',
+                              });
+                            }, 100);
+                          }}
                           className="btn btn-sm fw-bold btn-cta"
                           style={{ padding: '6px 14px' }}
                         >
