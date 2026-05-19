@@ -40,7 +40,7 @@ axios.interceptors.response.use(
       error.response &&
       (error.response.status === 401 || error.response.status === 403);
 
-    // FIX: Use Regex to broadly match ANY login, token, or register endpoint
+    // Use Regex to broadly match ANY login, token, or register endpoint
     const isLoginOrRegister =
       error.config &&
       error.config.url &&
@@ -135,7 +135,7 @@ function App() {
   const handleSearch = async (icToSearch = searchQuery) => {
     setSearchError('');
 
-    // NEW: If search bar is empty, automatically fetch all history!
+    // If search bar is empty, automatically fetch all history!
     if (!icToSearch || String(icToSearch).trim() === '') {
       try {
         const response = await axios.get(
@@ -214,7 +214,7 @@ function App() {
   };
 
   const handleViewOfficerDetail = async (app) => {
-    // FIX: Instantly scroll to the top of the page when opening an application
+    // Use Regex to broadly match ANY login, token, or register endpoint
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     setLoading(true);
@@ -532,7 +532,6 @@ function App() {
                     </Col>
                   </Row>
                   {/* DYNAMIC DUAL-THEMED INSIGHTS SECTION */}
-                  {/* DYNAMIC DUAL-THEMED INSIGHTS SECTION */}
                   <Row className="mb-5">
                     <Col xs={12}>
                       {/* Change header to be a bit more neutral since it now contains mixed factors */}
@@ -545,7 +544,7 @@ function App() {
                       <Row>
                         {result.recommendations &&
                           result.recommendations.map((rec, index) => {
-                            // FIX: Determine styling based on individual effect, not overall decision
+                            // Use Regex to broadly match ANY login, token, or register endpoint
                             const isProtective = rec.effect < 0;
 
                             return (
@@ -614,7 +613,7 @@ function App() {
     );
   };
 
-  // --- NEW: Applicant History Pagination Logic ---
+  // --- Applicant History Pagination Logic ---
   const indexOfLastHistory = historyPage * historyPerPage;
   const indexOfFirstHistory = indexOfLastHistory - historyPerPage;
   const currentHistory = history.slice(indexOfFirstHistory, indexOfLastHistory);
@@ -623,7 +622,7 @@ function App() {
   return (
     <Container className="py-4" style={{ maxWidth: '1000px' }}>
       <style>{`.btn-animated{transition:transform .15s ease, box-shadow .15s ease;} .btn-animated:hover{transform:translateY(-3px) scale(1.02); box-shadow:0 8px 28px rgba(15,23,42,0.06);} .record-detail-btn{transition: color .12s ease, transform .12s ease;} .record-detail-btn:hover{transform:translateX(6px);}`}</style>
-      {/* --- NEW: GLOBAL SUCCESS TOAST --- */}
+      {/* --- GLOBAL SUCCESS TOAST --- */}
       {appToast && (
         <div
           style={{
@@ -657,7 +656,7 @@ function App() {
             <div>
               <p className="brand-name">Credify</p>
               <p className="brand-tagline">
-                Microloan Credit Scoring Classification Platform
+                Microloan Credit Scoring Classification System
               </p>
             </div>
           </div>
@@ -949,7 +948,7 @@ function App() {
                     );
                   })}
 
-                  {/* --- NEW: Applicant Pagination UI --- */}
+                  {/* --- Applicant Pagination UI --- */}
                   {totalHistoryPages > 1 && (
                     <div className="d-flex justify-content-center mt-5 mb-3 fade-in">
                       <div

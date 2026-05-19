@@ -23,10 +23,10 @@ class User(Base):
     # Role can be "applicant" or "loan_officer"
     user_role = Column(String, default="applicant", nullable=False) 
     
-    # Profile Picture: Default is the gray portrait you mentioned
+    # Default Profile Picture Default
     user_avatar_url = Column(String, default="/avatars/user_default_pfp_picture.jpg")
 
-    # Relationships - Note the foreign_keys explicitly point to the column names in ApplicationRecord
+    # Relationships 
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     applications = relationship("ApplicationRecord", foreign_keys="[ApplicationRecord.applicant_user_id]", back_populates="applicant")
     reviewed_applications = relationship("ApplicationRecord", foreign_keys="[ApplicationRecord.reviewing_officer_id]", back_populates="officer")
@@ -37,7 +37,7 @@ class UserProfile(Base):
     __tablename__ = "user_profiles"
 
     user_profile_id = Column(Integer, primary_key=True, index=True)
-    # Important: The foreign key must explicitly state the table and column name: "users.user_id"
+    
     user_id = Column(Integer, ForeignKey("users.user_id"), unique=True, nullable=False)
 
     gender = Column(String, nullable=True) 
@@ -71,7 +71,6 @@ class ApplicationRecord(Base):
     shap_explanations = Column(JSONB)
 
     # USER MANAGEMENT SYSTEM FIELDS
-    # Important: The foreign key must explicitly state the table and column name: "users.user_id"
     applicant_user_id = Column(Integer, ForeignKey("users.user_id"), nullable=True)
     reviewing_officer_id = Column(Integer, ForeignKey("users.user_id"), nullable=True)
     

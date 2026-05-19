@@ -204,6 +204,44 @@ const CreditForm = ({ onSubmit, onCancel }) => {
         }
       }
 
+      // Dynamic relation validation for children vs household members
+      if (['CNT_CHILDREN', 'CNT_FAM_MEMBERS'].includes(field)) {
+        const toNumber = (v) => {
+          const n = Number(v);
+          return Number.isFinite(n) ? n : NaN;
+        };
+
+        const children = toNumber(newData.CNT_CHILDREN);
+        const members = toNumber(newData.CNT_FAM_MEMBERS);
+
+        // Field-level numeric sanity checks
+        if (Number.isNaN(children) || children < 0) {
+          e.CNT_CHILDREN = 'Children must be 0 or greater.';
+        } else {
+          delete e.CNT_CHILDREN;
+        }
+
+        if (Number.isNaN(members) || members < 1) {
+          e.CNT_FAM_MEMBERS = 'Household members must be 1 or greater.';
+        } else {
+          delete e.CNT_FAM_MEMBERS;
+        }
+
+        // Relation check only when both are valid numbers
+        if (!Number.isNaN(children) && !Number.isNaN(members)) {
+          if (members < children + 1) {
+            const msg = `Total members in household must be at least ${children + 1} (Total children + yourself).`;
+            e.CNT_FAM_MEMBERS = msg;
+            e.CNT_CHILDREN = msg;
+            e.household = msg;
+          } else {
+            if (e.household) delete e.household;
+          }
+        } else {
+          if (e.household) delete e.household;
+        }
+      }
+
       return e;
     });
   };
@@ -256,6 +294,13 @@ const CreditForm = ({ onSubmit, onCancel }) => {
       const members = parseNumber(formData.CNT_FAM_MEMBERS);
       if (Number.isNaN(members) || members < 1)
         newErrors.CNT_FAM_MEMBERS = 'Household members must be 1 or greater.';
+
+      if (members < children + 1) {
+        const msg = ` Total members in household must be at least ${children + 1} (Total children + yourself).`;
+        newErrors.CNT_FAM_MEMBERS = msg;
+        newErrors.CNT_CHILDREN = msg;
+        newErrors.household = msg;
+      }
     }
 
     if (currentStep >= 3) {
@@ -353,7 +398,7 @@ const CreditForm = ({ onSubmit, onCancel }) => {
       const credit = parseNumber(formData.AMT_CREDIT);
       const annuity = parseNumber(formData.AMT_ANNUITY);
 
-      // FIX: Independent ratio evaluations to prevent conflicting/hidden errors
+      // Independent ratio evaluations to prevent conflicting/hidden errors
       if (
         !Number.isNaN(income) &&
         !Number.isNaN(credit) &&
@@ -438,7 +483,7 @@ const CreditForm = ({ onSubmit, onCancel }) => {
         isAutoRejected = true;
       }
 
-      // FIX: Independent ratio evaluations for final check
+      // Independent ratio evaluations for final check
       if (income >= 0 && credit > 0 && annuity > 0) {
         const creditToIncome = income === 0 ? Infinity : credit / income;
         if (creditToIncome < 0.5 || creditToIncome > 10) {
@@ -464,7 +509,7 @@ const CreditForm = ({ onSubmit, onCancel }) => {
 
     setErrors((prev) => ({ ...prev, ...newErrors }));
 
-    // FIX: Filter out 'LOAN_REC' so it acts purely as a warning and does not block the user
+    // Filter out 'LOAN_REC' so it acts purely as a warning and does not block the user
     const errorKeys = Object.keys(newErrors).filter((k) => k !== 'LOAN_REC');
 
     return {

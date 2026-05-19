@@ -28,7 +28,6 @@ DICT_PATH = os.path.join(backend_root, 'config', 'xai_feature_dictionary.json')
 model = None
 explainer = None
 expected_features = []
-optimal_threshold = 0.58
 xai_dictionary = {}
 
 

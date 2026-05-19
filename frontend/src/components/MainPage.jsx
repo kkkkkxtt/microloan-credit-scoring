@@ -27,7 +27,7 @@ const MainPage = ({ onLoginClick }) => {
             <div>
               <p className="brand-name">Credify</p>
               <p className="brand-tagline">
-                Microloan Credit Scoring Classification Platform
+                Microloan Credit Scoring Classification System
               </p>
             </div>
           </div>
@@ -58,7 +58,7 @@ const MainPage = ({ onLoginClick }) => {
             className="text-muted-custom mb-5 mx-auto"
             style={{ maxWidth: '600px', fontSize: '1.1rem' }}
           >
-            Credify uses advanced Machine Learning to assess microloan
+            This system uses advanced Machine Learning to assess microloan
             applications in minutes — giving you a transparent decision with a
             clear explanation of the factors that shaped it.
           </p>
@@ -106,7 +106,7 @@ const MainPage = ({ onLoginClick }) => {
 
         {/* Feature Grid */}
         <h4 className="fw-bold text-center text-slate mb-4 mt-5 pt-3">
-          Why Choose Credify?
+          Why Choose Our System?
         </h4>
         <div className="feature-grid mb-5">
           <div className="feature-card bg-white shadow-sm border-0">
@@ -143,13 +143,13 @@ const MainPage = ({ onLoginClick }) => {
 
         {/* About Box */}
         <div className="about-box shadow-sm border-0 text-center p-5">
-          <h5 className="fw-bold text-slate mb-3">About Credify</h5>
+          <h5 className="fw-bold text-slate mb-3">About Us</h5>
           <p
             className="text-muted-custom m-0 mx-auto"
             style={{ maxWidth: '700px' }}
           >
             We believe everyone deserves to know their creditworthiness and the
-            reasons behind it. Credify bridges the gap between complex
+            reasons behind it. This system bridges the gap between complex
             artificial intelligence and accessible, fair financial tools.
           </p>
         </div>

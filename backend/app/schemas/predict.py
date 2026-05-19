@@ -4,12 +4,12 @@ These schemas validate incoming raw feature dictionaries, enforce
 basic sanity checks, and structure the API response expected by the
 frontend.
 """
-from pydantic import BaseModel, RootModel, root_validator
+from pydantic import BaseModel, RootModel, model_validator
 from typing import Dict, Any, List, Optional
 
 
 class PredictionRequest(RootModel[Dict[str, Any]]):
-    @root_validator(pre=True)
+    @model_validator(mode='before')
     def validate_input(cls, values):
         data = values
         errors = {}

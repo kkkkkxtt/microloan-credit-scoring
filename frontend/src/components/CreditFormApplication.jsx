@@ -138,6 +138,7 @@ const CreditFormApplication = ({
                   min="0"
                   value={formData.CNT_CHILDREN}
                   onChange={(e) => handleChange('CNT_CHILDREN', e.target.value)}
+                  isInvalid={!!errors.CNT_CHILDREN}
                 />
                 {errors.CNT_CHILDREN && (
                   <div className="text-danger small mt-2 pt-1">
@@ -161,6 +162,7 @@ const CreditFormApplication = ({
                   onChange={(e) =>
                     handleChange('CNT_FAM_MEMBERS', e.target.value)
                   }
+                  isInvalid={!!errors.CNT_FAM_MEMBERS}
                 />
                 {errors.CNT_FAM_MEMBERS && (
                   <div className="text-danger small mt-2 pt-1">
@@ -700,7 +702,7 @@ const CreditFormApplication = ({
             <h4 className="fw-bold text-slate m-0">Loan Details</h4>
           </div>
 
-          {/* FIX: Render ALL relevant Step 5 Auto-Rejects prominently in the banner */}
+          {/* Render ALL relevant Step 5 Auto-Rejects prominently in the banner */}
           {errors.AMT_CREDIT && errors.AMT_CREDIT.includes('AUTO-REJECT') && (
             <Alert variant="danger">
               <AlertTriangle size={18} className="me-2" />
@@ -781,7 +783,7 @@ const CreditFormApplication = ({
                     {errors.AMT_ANNUITY}
                   </div>
                 )}
-                {/* FIX: Render the recommendation below the field */}
+                {/* Render the recommendation below the field */}
                 {errors.LOAN_REC && (
                   <div
                     className="small mt-2 pt-1 fw-semibold d-flex align-items-start"

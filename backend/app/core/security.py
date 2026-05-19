@@ -5,17 +5,14 @@ creation. These utilities are small wrappers around established
 libraries (`passlib` and `python-jose`) and keep authentication
 concerns isolated from business logic.
 
-IMPORTANT: ``SECRET_KEY`` is currently hard-coded for local
-development. Store secrets in environment variables or a secret
-manager in production.
 """
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import jwt
 from passlib.context import CryptContext
 
-# Secret key to sign the JWT token (In production, move this to a .env file!)
-SECRET_KEY = "super_secret_credify_key_change_me_later"
+# Secret key to sign the JWT token (If production,  this should be moved to a .env file)
+SECRET_KEY = "credify_super_secret_key_for_password_encryption"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
